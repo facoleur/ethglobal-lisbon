@@ -1,13 +1,26 @@
 A définir :
 - roadmap POC :
-    - 1ER
-- Définition des rôles : 
+    - 1er : 
+        - pas de watch tower (WT)
+        - modular smart account EIP-7579
+        - Kernel / Safe ?
+    - 2eme :
+        - Implémentation watch tower
+        - ZK : Gestion from scratch avec Noir ou Semaphore
+- Définition des rôles :
     - PO
     - Overviewer / Adaptation
     - Pitcheur
-- Technos : 
+- Choix techniques : 
     - Front-end
+        - lib permissionless.js -> intégration smart wallet ERC-4337
+        - nextJS
+        - web app mobile mobile first
     - Smart contract
+        - EIP-7579 : https://eips.ethereum.org/EIPS/eip-7579
+        - Wallet Kernel compatible EIP-7579
+        - MerkleTree pour l'enregistrement des watch towers
+        - anonymisation des WT sur le Merkle Tree : ZK avec Noir ou via le projet Semaphore
 - Les questions à clarifier :
     - Watchtowers :
         - cadre de la config :
