@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    frontend-lint:
+      root: "frontend/"
+      glob: "*.{ts,tsx,js,jsx,mjs}"
+      run: node_modules/.bin/eslint {staged_files}
+      stage_fixed: true
+
+    frontend-format:
+      root: "frontend/"
+      glob: "*.{ts,tsx,js,jsx,mjs,css,json}"
+      run: node_modules/.bin/prettier --write {staged_files}
+      stage_fixed: true
+
+    frontend-typecheck:
+      run: cd frontend && node_modules/.bin/tsc --noEmit
