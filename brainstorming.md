@@ -1,0 +1,18 @@
+A définir :
+- roadmap POC :
+    - 1ER
+- Définition des rôles : 
+    - PO
+    - Overviewer / Adaptation
+    - Pitcheur
+- Technos : 
+    - Front-end
+    - Smart contract
+- Les questions à clarifier :
+    - Watchtowers :
+        - cadre de la config :
+            - taille max WT imposés -> 16 WT
+            - obligation d'avoir une WT ? Non mais recommandation front-end
+            - est-ce qu'on implémente une précompute adress de recovery ? Non; bric supplémentaire à brainstorm si temps
+        - est-ce qu'on implémente un paymaster pour les WT ? Si implémentable
+        - définir le fonctionnement et les types de WT (pro/wallets, proche, système WT incentivisé) -> pour le pitch
