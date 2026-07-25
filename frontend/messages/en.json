@@ -15,6 +15,7 @@
       "addressLabel": "Address to recover",
       "addressPlaceholder": "Paste or type the address (0x...)",
       "continueButton": "Continue",
+      "targetAddressLabel": "Address",
       "step2Title": "Stake & start recovery",
       "step2Subtitle": "You need to send a deposit to initiate the recovery process.",
       "depositLabel": "Lock value",
@@ -89,6 +90,18 @@
       "title": "Receive",
       "copyButton": "Copy address",
       "copied": "Address copied!"
+    },
+    "VetoDrawer": {
+      "title": "Recovery attempt detected",
+      "subtitle": "Someone is trying to take control of your wallet.",
+      "requesterLabel": "Requested by",
+      "timeRemainingLabel": "Time left to veto",
+      "expiredLabel": "Challenge window expired",
+      "vetoButton": "Veto recovery",
+      "vetoingButton": "Vetoing…",
+      "allowButton": "I initiated this",
+      "successTitle": "Recovery vetoed",
+      "successSubtitle": "The recovery attempt has been rejected."
     }
   },
   "Navigation": {

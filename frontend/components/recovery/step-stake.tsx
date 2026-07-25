@@ -9,7 +9,6 @@ import {
   buildEip681Uri,
   MOCK_LOCK_VALUE_ETH,
   MOCK_LOCK_TIME_LABEL,
-  MOCK_CHALLENGE_WINDOW_MS,
   RECOVERY_CONTRACT_ADDRESS,
   SEPOLIA_CHAIN_ID,
   truncateAddress,
@@ -29,9 +28,8 @@ export function StepStake() {
 
   async function handleStake() {
     setIsPending(true);
-    // TODO: commitRecovery + revealRecovery — executableAt comes from getRecovery(account).executableAt after reveal
-    await simulateStake();
-    setCommitted(Date.now() + MOCK_CHALLENGE_WINDOW_MS);
+    const { executableAt } = await simulateStake();
+    setCommitted(executableAt);
     setIsPending(false);
   }
 
@@ -45,7 +43,9 @@ export function StepStake() {
 
         <div className="border-border flex flex-col gap-3 rounded-2xl border p-4">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Address</span>
+            <span className="text-muted-foreground text-sm">
+              {t("targetAddressLabel")}
+            </span>
             <span className="font-mono text-sm font-medium">
               {targetAccount ? truncateAddress(targetAccount) : "—"}
             </span>

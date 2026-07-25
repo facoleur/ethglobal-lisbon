@@ -6,7 +6,10 @@ import { formatEther } from "viem";
 import { Button } from "@/components/ui/button";
 import { SendDrawer } from "@/components/send/send-drawer";
 import { ReceiveDrawer } from "@/components/receive/receive-drawer";
+import { VetoDrawer } from "@/components/recovery/veto-drawer";
 import { useKernelBalance } from "@/hooks/use-kernel";
+import { useVetoStore } from "@/lib/store/veto";
+import { simulateIncomingRecovery } from "@/lib/recovery";
 
 export default function HomePage() {
   const t = useTranslations("App.Home");
@@ -14,6 +17,12 @@ export default function HomePage() {
   const [receiveOpen, setReceiveOpen] = useState(false);
 
   const { balance } = useKernelBalance();
+  const {
+    status: vetoStatus,
+    hasHydrated: vetoHydrated,
+    setPending,
+  } = useVetoStore();
+  const vetoOpen = vetoHydrated && vetoStatus === "pending";
 
   return (
     <>
@@ -47,6 +56,18 @@ export default function HomePage() {
             {t("receiveButton")}
           </Button>
         </div>
+
+        {process.env.NODE_ENV === "development" && (
+          <button
+            className="text-muted-foreground text-left text-xs underline"
+            onClick={async () => {
+              const data = await simulateIncomingRecovery();
+              setPending(data.recovererAddress, data.executableAt);
+            }}
+          >
+            [dev] Simulate incoming recovery
+          </button>
+        )}
       </div>
 
       {/* send drawer */}
@@ -54,6 +75,9 @@ export default function HomePage() {
 
       {/* receive drawer */}
       <ReceiveDrawer open={receiveOpen} onOpenChange={setReceiveOpen} />
+
+      {/* veto drawer — auto-opens when a recovery against this wallet is detected */}
+      <VetoDrawer open={vetoOpen} />
     </>
   );
 }
