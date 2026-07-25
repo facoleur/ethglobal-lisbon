@@ -12,9 +12,15 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@zerodev/webauthn-key": "5.4.2",
     "next": "16.2.11",
+    "permissionless": "0.3.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "viem": "2.45.0"
+  },
+  "overrides": {
+    "ws": "8.21.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
