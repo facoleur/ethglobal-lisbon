@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useVetoStore } from "@/lib/store/veto";
@@ -14,6 +15,7 @@ type VetoDrawerProps = {
 
 export function VetoDrawer({ open }: VetoDrawerProps) {
   const t = useTranslations("App.VetoDrawer");
+  const tCommon = useTranslations("Common");
   const { recovererAddress, executableAt, clear } = useVetoStore();
   const [now, setNow] = useState(() => Date.now());
   const [isVetoing, setIsVetoing] = useState(false);
@@ -45,9 +47,14 @@ export function VetoDrawer({ open }: VetoDrawerProps) {
   async function handleVeto() {
     haptic("heavy");
     setIsVetoing(true);
-    await simulateVeto();
-    setIsVetoing(false);
-    setVetoed(true);
+    try {
+      await simulateVeto();
+      setVetoed(true);
+    } catch {
+      toast.error(tCommon("error"));
+    } finally {
+      setIsVetoing(false);
+    }
   }
 
   function handleOpenChange(next: boolean) {
