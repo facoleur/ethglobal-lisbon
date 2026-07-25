@@ -195,4 +195,31 @@ contract RotatableWebAuthnValidator is IValidator, IRotatableWebAuthnValidator {
             usePrecompiled
         );
     }
+    function setNewOwner(
+        uint256 newPubKeyX,
+        uint256 newPubKeyY
+    ) external override {
+        StoredKey storage current = _keys[msg.sender];
+
+        if (current.pubKeyX == 0) {
+            revert NotInitialized(msg.sender);
+        }
+
+        _validatePublicKey(newPubKeyX, newPubKeyY);
+
+        current.pubKeyX = newPubKeyX;
+        current.pubKeyY = newPubKeyY;
+
+        unchecked {
+            current.keyVersion++;
+        }
+
+        emit WebAuthnKeyRotated(
+            msg.sender,
+            current.keyVersion,
+            newPubKeyX,
+            newPubKeyY,
+            current.credentialIdHash
+        );
+    }
 }

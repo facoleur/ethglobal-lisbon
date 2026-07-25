@@ -8,4 +8,9 @@ interface IRotatableWebAuthnValidator {
         external
         view
         returns (uint256 pubKeyX, uint256 pubKeyY, bytes32 credentialIdHash, uint64 keyVersion);
+
+    function setNewOwner(
+        uint256 newPubKeyX,
+        uint256 newPubKeyY
+    ) external;
 }
