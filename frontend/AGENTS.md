@@ -42,6 +42,8 @@ dont use modal, dont use dialogs.
 
 we use motion for animations
 
+No custom swipe gestures. iOS and Android both provide system-level back gestures — don't reimplement them. Back navigation = back button only (`ScreenLayout` with `back` prop).
+
 Dont add border when not necessary.
 Make every color a variable. I want to be able to change theme really easily in one place.
 
