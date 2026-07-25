@@ -63,7 +63,7 @@ export async function createKernelSession(
     },
   });
 
-  return { account, client };
+  return { account, client, authenticatorId: webAuthnKey.authenticatorId };
 }
 
 export type KernelSession = Awaited<ReturnType<typeof createKernelSession>>;
