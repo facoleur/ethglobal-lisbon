@@ -28,6 +28,9 @@ export function LockTimePicker({
 }: LockTimePickerProps) {
   const t = useTranslations("App.Settings.TarDrawer");
   const unitOptions: WheelPickerOption<LockTimeUnit>[] = [
+    { label: t("seconds"), value: "seconds" },
+    { label: t("minutes"), value: "minutes" },
+    { label: t("hours"), value: "hours" },
     { label: t("days"), value: "days" },
     { label: t("weeks"), value: "weeks" },
     { label: t("months"), value: "months" },
