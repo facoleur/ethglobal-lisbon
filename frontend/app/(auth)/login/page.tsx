@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { useWalletStore } from "@/lib/store/wallet";
 import { createKernelSession } from "@/lib/kernel/create-session";
 import { useTranslations } from "next-intl";
