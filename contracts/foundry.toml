@@ -9,4 +9,11 @@ optimizer = true
 optimizer_runs = 200
 via_ir = true
 
+[lint]
+# Disabled: vendored dependencies (e.g. kernel-7579-plugins) use bare "src/..."
+# imports resolved relative to their own project root, which solar can't resolve
+# from the combined workspace root and hard-fails on, even when excluded via
+# `ignore`. Lint our own code explicitly with `forge lint src script` instead.
+lint_on_build = false
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
