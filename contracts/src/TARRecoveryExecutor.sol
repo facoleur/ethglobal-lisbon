@@ -140,7 +140,9 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
         bytes32 commitment = keccak256(abi.encodePacked(addressToRecover, broadcasterAddress, pubKeyX, pubKeyY, salt));
         uint256 commitBlock = pendingCommitments[commitment];
         if (commitBlock == 0) revert CommitmentNotFound();
-        if (block.number < commitBlock + MIN_COMMIT_REVEAL_BLOCKS) revert CommitmentNotMature();
+        if (block.number < commitBlock + MIN_COMMIT_REVEAL_BLOCKS) {
+            revert CommitmentNotMature();
+        }
 
         if (msg.value != configs[addressToRecover].lockValue) {
             revert WrongStakedAmount();

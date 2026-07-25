@@ -117,6 +117,16 @@ Recalcule le commitment (formule en §4.4), vérifie qu'il existe dans `pendingC
 
 **Délai minimum commit→reveal (résolu, ajouté après coup — point manquant dans les versions précédentes de ce document) :** sans délai, un attaquant qui observe en mempool le `revealRecovery` d'une victime peut réagir en committant *et* révélant sa propre tentative malveillante dans le **même bloc**, volant la garde active-recovery (`RecoveryAlreadyActive`) avant que le reveal légitime n'atterrisse. `pendingCommitments` stocke donc `block.number` au lieu d'un booléen ; `revealRecovery` exige `block.number >= commitBlock + MIN_COMMIT_REVEAL_BLOCKS` (`MIN_COMMIT_REVEAL_BLOCKS = 1`, pattern standard ENS/Uniswap). Un seul bloc suffit contre cette attaque précise : le commit réactif de l'attaquant ne peut mûrir qu'au bloc suivant, par lequel le reveal légitime a déjà atterri. **Ce que ça ne protège pas** : un attaquant patient qui connaît la cible à l'avance peut toujours committer/révéler des jours avant toute tentative légitime — c'est inhérent au principe "n'importe qui peut initier une recovery" et reste défendu par le veto de l'owner (`challengeRecovery`), pas par la rareté des tentatives.
 
+**Correctif du 25/07/2026 — `requestRecovery` ne doit plus rafraîchir un commitment existant :**
+```solidity
+function requestRecovery(bytes32 commitment) external {
+    if (pendingCommitments[commitment] != 0) return;
+    pendingCommitments[commitment] = block.number;
+    emit RecoveryRequested(commitment);
+}
+```
+La première version de ce correctif (voir plus haut) réécrivait inconditionnellement `pendingCommitments[commitment] = block.number` à chaque appel, y compris sur un commitment déjà pending — présenté comme un no-op inoffensif, hérité du comportement Milestone B/C d'avant le délai minimum (où `pendingCommitments` n'était qu'un booléen, donc réellement un no-op). Une fois `pendingCommitments` devenu un compteur de bloc pour `MIN_COMMIT_REVEAL_BLOCKS`, ce n'était plus un no-op : n'importe qui pouvait observer un commitment sur le point de mûrir et le re-soumettre pour repousser indéfiniment sa date de maturité, empêchant le broadcaster légitime de jamais atteindre `revealRecovery` — un déni de service permanent sur sa propre recovery. Seule la **première** requête pour un commitment donné fixe son `commitBlock` ; les requêtes suivantes sur le même commitment sont des no-ops stricts (aucune écriture, aucun event). Le spam avec des commitments **distincts** reste une limite acceptée du POC (inchangé).
+
 ```solidity
 // Owner du compte ciblé, vérifié via ERC-1271 (isValidSignature du compte, agnostique du validator actif)
 function challengeRecovery(address addressToRecover, bytes calldata ownerSignature) external;
