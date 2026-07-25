@@ -1,13 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/lib/store/wallet";
 import { createKernelSession } from "@/lib/kernel/create-session";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
+import { RecoveryDrawer } from "@/components/recovery/recovery-drawer";
 
 export default function LoginPage() {
   const t = useTranslations("Auth.Login");
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const { setCredential } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
 
   async function handleCreateWallet() {
     setIsCreating(true);
@@ -52,44 +53,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* header */}
-      <div className="mb-4 flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
+    <>
+      <div className="flex flex-col gap-4">
+        <div className="mb-4 flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold">{t("title")}</h1>
+          <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
+        </div>
+
+        <Button
+          size="lg"
+          className="w-full rounded-2xl py-4"
+          onClick={handleCreateWallet}
+          disabled={isCreating || isLoggingIn}
+        >
+          {isCreating ? t("creating") : t("createWallet")}
+        </Button>
+
+        <Button
+          size="lg"
+          variant="outline"
+          className="w-full rounded-2xl py-4"
+          onClick={handleLogin}
+          disabled={isCreating || isLoggingIn}
+        >
+          {isLoggingIn ? t("loggingIn") : t("loginWithPasskey")}
+        </Button>
+
+        <Button
+          size="lg"
+          variant="outline"
+          className="w-full rounded-2xl py-4"
+          onClick={() => setRecoveryOpen(true)}
+          disabled={isCreating || isLoggingIn}
+        >
+          {t("recoverWallet")}
+        </Button>
       </div>
 
-      {/* create wallet button */}
-      <Button
-        size="lg"
-        className="w-full rounded-2xl py-4"
-        onClick={handleCreateWallet}
-        disabled={isCreating || isLoggingIn}
-      >
-        {isCreating ? t("creating") : t("createWallet")}
-      </Button>
-
-      {/* login with passkey button */}
-      <Button
-        size="lg"
-        variant="outline"
-        className="w-full rounded-2xl py-4"
-        onClick={handleLogin}
-        disabled={isCreating || isLoggingIn}
-      >
-        {isLoggingIn ? t("loggingIn") : t("loginWithPasskey")}
-      </Button>
-
-      {/* recover wallet button */}
-      <Button
-        variant="outline"
-        size="lg"
-        className="w-full rounded-2xl py-4"
-        render={<Link href="/recovery" />}
-        nativeButton={false}
-      >
-        {t("recoverWallet")}
-      </Button>
-    </div>
+      <RecoveryDrawer open={recoveryOpen} onOpenChange={setRecoveryOpen} />
+    </>
   );
 }
