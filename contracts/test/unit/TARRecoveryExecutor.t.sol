@@ -8,10 +8,11 @@ import {ITARRecovery} from "../../src/interfaces/ITARRecovery.sol";
 import {MockERC7579Account} from "../mocks/MockERC7579Account.sol";
 import {MockRotatableValidator} from "../mocks/MockRotatableValidator.sol";
 
-/// @notice Milestone B: full commit-reveal state machine (requestRecovery, revealRecovery,
-/// challengeRecovery, finalizeRecovery). `newSigner` is a plain `address` (ECDSA, temporary) —
-/// see `context_mB.md`. Tested against `MockERC7579Account` + `MockRotatableValidator`, no real
-/// Kernel/validator (Milestone E) involved.
+/// @notice Milestone C: full commit-reveal state machine (requestRecovery, revealRecovery,
+/// challengeRecovery, finalizeRecovery) with the new signer as a WebAuthn/P-256
+/// `(pubKeyX, pubKeyY)` pair — replaces the Milestone B `address newSigner` harness entirely
+/// (not an extension, see `context_mC.md`). Tested against `MockERC7579Account` +
+/// `MockRotatableValidator`, no real Kernel/validator (Milestone E) involved.
 contract TARRecoveryExecutorTest is Test {
     uint256 constant LOCK_VALUE = 1 ether;
     uint256 constant LOCK_TIME = 3 days;
@@ -23,7 +24,8 @@ contract TARRecoveryExecutorTest is Test {
     uint256 ownerKey;
     address owner;
     address broadcaster = address(0xB0AD);
-    address newSigner = address(0x519E5);
+    uint256 newPubKeyX = uint256(keccak256("newPubKeyX"));
+    uint256 newPubKeyY = uint256(keccak256("newPubKeyY"));
 
     function setUp() external {
         validator = new MockRotatableValidator();
@@ -35,23 +37,25 @@ contract TARRecoveryExecutorTest is Test {
         vm.deal(broadcaster, 100 ether);
     }
 
-    function _commitment(address addressToRecover, address broadcasterAddress, address signer, bytes32 salt)
-        internal
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encodePacked(addressToRecover, broadcasterAddress, signer, salt));
+    function _commitment(
+        address addressToRecover,
+        address broadcasterAddress,
+        uint256 pubKeyX,
+        uint256 pubKeyY,
+        bytes32 salt
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(addressToRecover, broadcasterAddress, pubKeyX, pubKeyY, salt));
     }
 
     function _requestAndReveal(bytes32 salt) internal returns (bytes32 commitment) {
-        commitment = _commitment(address(account), broadcaster, newSigner, salt);
+        commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
         executor.requestRecovery(commitment);
         vm.prank(broadcaster);
-        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newSigner, salt);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
     }
 
     function _rejectSignature() internal view returns (bytes memory) {
-        (,,, uint256 revealTimestamp,) = executor.recoveries(address(account));
+        (,,,, uint256 revealTimestamp,) = executor.recoveries(address(account));
         bytes32 rejectHash = keccak256(
             abi.encodePacked(address(executor), block.chainid, address(account), broadcaster, revealTimestamp, "REJECT")
         );
@@ -67,16 +71,17 @@ contract TARRecoveryExecutorTest is Test {
         bytes32 salt = bytes32(uint256(1));
         bytes32 commitment = _requestAndReveal(salt);
 
-        (,,,, TARRecoveryExecutor.RecoveryStatus statusAfterReveal) = executor.recoveries(address(account));
+        (,,,,, TARRecoveryExecutor.RecoveryStatus statusAfterReveal) = executor.recoveries(address(account));
         assertEq(uint8(statusAfterReveal), uint8(TARRecoveryExecutor.RecoveryStatus.Revealed));
         assertFalse(executor.pendingCommitments(commitment));
 
         vm.warp(block.timestamp + LOCK_TIME);
         executor.finalizeRecovery(address(account));
 
-        assertEq(validator.currentOwner(address(account)), newSigner);
+        assertEq(validator.currentPubKeyX(address(account)), newPubKeyX);
+        assertEq(validator.currentPubKeyY(address(account)), newPubKeyY);
         assertEq(address(account).balance, LOCK_VALUE);
-        (,,,, TARRecoveryExecutor.RecoveryStatus statusAfterFinalize) = executor.recoveries(address(account));
+        (,,,,, TARRecoveryExecutor.RecoveryStatus statusAfterFinalize) = executor.recoveries(address(account));
         assertEq(uint8(statusAfterFinalize), uint8(TARRecoveryExecutor.RecoveryStatus.Finalized));
     }
 
@@ -90,7 +95,7 @@ contract TARRecoveryExecutorTest is Test {
 
         executor.challengeRecovery(address(account), _rejectSignature());
 
-        (,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
+        (,,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
         assertEq(uint8(status), uint8(TARRecoveryExecutor.RecoveryStatus.Rejected));
         assertEq(address(account).balance, LOCK_VALUE);
 
@@ -103,7 +108,7 @@ contract TARRecoveryExecutorTest is Test {
         _requestAndReveal(salt);
 
         (, uint256 wrongKey) = makeAddrAndKey("not-the-owner");
-        (,,, uint256 revealTimestamp,) = executor.recoveries(address(account));
+        (,,,, uint256 revealTimestamp,) = executor.recoveries(address(account));
         bytes32 rejectHash = keccak256(
             abi.encodePacked(address(executor), block.chainid, address(account), broadcaster, revealTimestamp, "REJECT")
         );
@@ -120,7 +125,7 @@ contract TARRecoveryExecutorTest is Test {
         vm.warp(block.timestamp + LOCK_TIME + 1 days);
         executor.challengeRecovery(address(account), _rejectSignature());
 
-        (,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
+        (,,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
         assertEq(uint8(status), uint8(TARRecoveryExecutor.RecoveryStatus.Rejected));
     }
 
@@ -149,7 +154,7 @@ contract TARRecoveryExecutorTest is Test {
         vm.warp(block.timestamp + LOCK_TIME);
         executor.finalizeRecovery(address(account));
 
-        (,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
+        (,,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
         assertEq(uint8(status), uint8(TARRecoveryExecutor.RecoveryStatus.Finalized));
     }
 
@@ -159,19 +164,19 @@ contract TARRecoveryExecutorTest is Test {
 
     function test_revealRecovery_wrongBroadcaster_reverts() external {
         bytes32 salt = bytes32(uint256(1));
-        bytes32 commitment = _commitment(address(account), broadcaster, newSigner, salt);
+        bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
         executor.requestRecovery(commitment);
 
         vm.deal(address(this), LOCK_VALUE);
         vm.expectRevert(ITARRecovery.InvalidBroadcaster.selector);
-        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newSigner, salt);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
     }
 
     function test_revealRecovery_unknownCommitment_reverts() external {
         bytes32 salt = bytes32(uint256(1));
         vm.prank(broadcaster);
         vm.expectRevert(ITARRecovery.CommitmentNotFound.selector);
-        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newSigner, salt);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
     }
 
     function test_revealRecovery_commitmentReplay_reverts() external {
@@ -182,7 +187,7 @@ contract TARRecoveryExecutorTest is Test {
         assertFalse(executor.pendingCommitments(commitment));
         vm.prank(broadcaster);
         vm.expectRevert(ITARRecovery.CommitmentNotFound.selector);
-        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newSigner, salt);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
     }
 
     function test_revealRecovery_activeRecoveryGuard_reverts() external {
@@ -190,22 +195,22 @@ contract TARRecoveryExecutorTest is Test {
         _requestAndReveal(firstSalt);
 
         bytes32 secondSalt = bytes32(uint256(2));
-        bytes32 secondCommitment = _commitment(address(account), broadcaster, newSigner, secondSalt);
+        bytes32 secondCommitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, secondSalt);
         executor.requestRecovery(secondCommitment);
 
         vm.prank(broadcaster);
         vm.expectRevert(abi.encodeWithSelector(ITARRecovery.RecoveryAlreadyActive.selector, address(account)));
-        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newSigner, secondSalt);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, secondSalt);
     }
 
     function test_revealRecovery_wrongStakedAmount_revertsAndKeepsCommitmentPending() external {
         bytes32 salt = bytes32(uint256(1));
-        bytes32 commitment = _commitment(address(account), broadcaster, newSigner, salt);
+        bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
         executor.requestRecovery(commitment);
 
         vm.prank(broadcaster);
         vm.expectRevert(ITARRecovery.WrongStakedAmount.selector);
-        executor.revealRecovery{value: LOCK_VALUE - 1}(address(account), broadcaster, newSigner, salt);
+        executor.revealRecovery{value: LOCK_VALUE - 1}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
 
         assertTrue(executor.pendingCommitments(commitment));
     }
@@ -213,24 +218,52 @@ contract TARRecoveryExecutorTest is Test {
     function test_revealRecovery_targetNotInitialized_reverts() external {
         address uninitializedAccount = address(0xDEAD);
         bytes32 salt = bytes32(uint256(1));
-        bytes32 commitment = _commitment(uninitializedAccount, broadcaster, newSigner, salt);
+        bytes32 commitment = _commitment(uninitializedAccount, broadcaster, newPubKeyX, newPubKeyY, salt);
         executor.requestRecovery(commitment);
 
         vm.prank(broadcaster);
         vm.expectRevert(abi.encodeWithSelector(IModule.NotInitialized.selector, uninitializedAccount));
-        executor.revealRecovery{value: LOCK_VALUE}(uninitializedAccount, broadcaster, newSigner, salt);
+        executor.revealRecovery{value: LOCK_VALUE}(uninitializedAccount, broadcaster, newPubKeyX, newPubKeyY, salt);
+    }
+
+    function test_revealRecovery_zeroPubKeyX_reverts() external {
+        bytes32 salt = bytes32(uint256(1));
+        bytes32 commitment = _commitment(address(account), broadcaster, 0, newPubKeyY, salt);
+        executor.requestRecovery(commitment);
+
+        vm.prank(broadcaster);
+        vm.expectRevert(ITARRecovery.InvalidPublicKey.selector);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, 0, newPubKeyY, salt);
+    }
+
+    function test_revealRecovery_zeroPubKeyY_reverts() external {
+        bytes32 salt = bytes32(uint256(1));
+        bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, 0, salt);
+        executor.requestRecovery(commitment);
+
+        vm.prank(broadcaster);
+        vm.expectRevert(ITARRecovery.InvalidPublicKey.selector);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, 0, salt);
     }
 
     // ---------------------------------------------------------------------
-    // Commitment formula — fixed cross-language (Solidity/JS) test vector.
-    // Inputs deliberately simple (addresses 0x...01/02/03, salt 0x...01) so a JS harness can
-    // reproduce the exact same packed encoding without ambiguity.
+    // Commitment formula — fixed cross-language (Solidity/JS) test vector. `pubKeyX`/`pubKeyY`
+    // are full-width uint256 (keccak256 outputs, representative of real P-256 coordinate
+    // magnitude) so a JS harness exercises the same encoding a real WebAuthn key would hit —
+    // encoded as uint256 (big integers), not as 32-byte hex strings, which would collide in
+    // Solidity's `abi.encodePacked` but not necessarily in a naive JS implementation.
     // ---------------------------------------------------------------------
 
     function test_commitmentFormula_matchesFixedVector() external pure {
         bytes32 commitment = keccak256(
-            abi.encodePacked(address(uint160(1)), address(uint160(2)), address(uint160(3)), bytes32(uint256(1)))
+            abi.encodePacked(
+                address(uint160(1)),
+                address(uint160(2)),
+                uint256(keccak256("pubKeyX-fixture")),
+                uint256(keccak256("pubKeyY-fixture")),
+                bytes32(uint256(1))
+            )
         );
-        assertEq(commitment, 0x81cff63d488b5a006dddb6eafffb068dd88afb3ce1827cbfc73043462d18b48c);
+        assertEq(commitment, 0x511fa6ade2900b97c3d7bd86335ea459bb299b50f59de397c874ba73ca1a4498);
     }
 }

@@ -135,6 +135,20 @@ bytes32 rejectHash = keccak256(abi.encodePacked(
 ```
 `broadcasterAddress` + `revealTimestamp` (lus dans `recoveries[addressToRecover]`) suffisent à lier la signature à cette tentative précise et empêchent le rejeu d'une ancienne signature de rejet sur une tentative future — sans avoir besoin d'un `recoveryId` séparé.
 
+**Ce que `ownerSignature` contient réellement une fois intégré à un vrai compte Kernel (point vérifié pendant la Milestone C, hors scope contrat mais critique pour le front)** : `TARRecoveryExecutor` appelle `IERC1271(addressToRecover).isValidSignature(rejectHash, ownerSignature)` sur le **compte**, jamais directement sur un validator — c'est intentionnel (design "agnostique du validator actif" ci-dessus) et ça ne change pas avec Kernel réel, puisque `Kernel.isValidSignature` (`Kernel.sol:318`) fait déjà ce dispatch en interne :
+```solidity
+function isValidSignature(bytes32 hash, bytes calldata signature) external view override returns (bytes4) {
+    (ValidationId vId, bytes calldata sig) = ValidatorLib.decodeSignature(signature);
+    ...
+    return validator.isValidSignatureWithSender(msg.sender, _toWrappedHash(hash), sig);
+}
+```
+Deux conséquences pour qui construit `ownerSignature` côté front (pas pour `TARRecoveryExecutor.sol`, qui n'a rien à faire de plus) :
+1. **Le hash signé n'est pas `rejectHash` brut.** Kernel le wrappe via `_toWrappedHash` (`ValidationManager.sol:591`), un typed-data EIP-712 sur le domaine du compte Kernel. La passkey doit signer ce hash wrappé, pas `rejectHash` directement.
+2. **`ownerSignature` n'est pas une signature brute.** `ValidatorLib.decodeSignature` (`utils/ValidationTypeLib.sol:80`) attend un préfixe de mode (1 octet, +20 octets d'adresse validator en mode "validator") avant la charge utile. Pour `TARWebAuthnValidator` (fork de `WebAuthnValidator.sol`, §6), cette charge utile est `abi.encode(authenticatorData, clientDataJSON, responseTypeLocation, r, s, usePrecompiled)` — pas `(v, r, s)`.
+
+Le mock de test (`MockERC7579Account.isValidSignature`, Milestones B/C) simplifie volontairement ceci en ECDSA brut, cohérent avec le scope "pas de vraie intégration Kernel" de ces milestones. Le format réel ci-dessus ne redevient pertinent qu'à la Milestone E (compte Kernel réel + `TARWebAuthnValidator`) et pour le flow de signature front du "REJECT".
+
 ```solidity
 // N'importe qui, appelable seulement après expiration de lockTime sans challenge
 function finalizeRecovery(address addressToRecover) external;

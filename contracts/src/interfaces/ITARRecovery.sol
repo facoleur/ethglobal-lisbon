@@ -38,6 +38,10 @@ interface ITARRecovery is IExecutor {
     /// @dev Stake transfer to `addressToRecover` failed in `challengeRecovery`/`finalizeRecovery`.
     error TransferFailed();
 
+    /// @dev `revealRecovery` called with `pubKeyX == 0` or `pubKeyY == 0` — fail fast at reveal
+    /// rather than let the caller wait out the full `lockTime` before `finalizeRecovery` reverts.
+    error InvalidPublicKey();
+
     event RecoveryParamsUpdated(address indexed account, uint256 lockValue, uint256 lockTime);
     event RecoveryRequested(bytes32 indexed commitment);
     event RecoveryRevealed(
@@ -53,11 +57,17 @@ interface ITARRecovery is IExecutor {
     /// accepted POC limit — see `context-full-implementation.md` §7).
     function requestRecovery(bytes32 commitment) external;
 
-    /// @dev Must be called by `broadcasterAddress` itself. `newSigner` is the Milestone B (ECDSA)
-    /// shape — becomes `(pubKeyX, pubKeyY)` at Milestone C.
-    function revealRecovery(address addressToRecover, address broadcasterAddress, address newSigner, bytes32 salt)
-        external
-        payable;
+    /// @dev Must be called by `broadcasterAddress` itself. `(pubKeyX, pubKeyY)` is a WebAuthn/P-256
+    /// public key — `uint256` to match `WebAuthnValidatorData` (Kernel) and
+    /// `TARWebAuthnValidator.setNewOwner` exactly, avoiding an implicit cast at every boundary
+    /// between this contract and the validator.
+    function revealRecovery(
+        address addressToRecover,
+        address broadcasterAddress,
+        uint256 pubKeyX,
+        uint256 pubKeyY,
+        bytes32 salt
+    ) external payable;
 
     /// @dev Owner of `addressToRecover`, authenticated via ERC-1271 (validator-agnostic).
     function challengeRecovery(address addressToRecover, bytes calldata ownerSignature) external;

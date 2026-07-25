@@ -10,7 +10,7 @@ import {MockRotatableValidator} from "../mocks/MockRotatableValidator.sol";
 
 /// @notice Module skeleton, config lifecycle and ERC-7579 boilerplate (Milestone A). Business
 /// logic (commit-reveal, challenge, finalize) is covered separately in
-/// `TARRecoveryExecutor.t.sol` (Milestone B) — a mock account/validator pair is still needed
+/// `TARRecoveryExecutor.t.sol` (Milestone B/C) — a mock account/validator pair is still needed
 /// here only because the constructor and mock account now require them.
 contract TARRecoveryExecutorLifecycleTest is Test {
     // RecoveryStatus enum mirrored here to build calldata/assert values without exposing the
@@ -19,10 +19,10 @@ contract TARRecoveryExecutorLifecycleTest is Test {
     uint8 constant STATUS_REVEALED = 1;
 
     // `recoveries` is the 3rd state variable declared in TARRecoveryExecutor (slot 2, after
-    // `configs` and `pendingCommitments`); `status` is the 5th field of `RecoveryRequest`
-    // (offset 4 slots into the struct — each field takes its own slot, none pack together).
+    // `configs` and `pendingCommitments`); `status` is the 6th field of `RecoveryRequest`
+    // (offset 5 slots into the struct — each field takes its own slot, none pack together).
     uint256 constant RECOVERIES_BASE_SLOT = 2;
-    uint256 constant STATUS_FIELD_OFFSET = 4;
+    uint256 constant STATUS_FIELD_OFFSET = 5;
 
     TARRecoveryExecutor executor;
     MockERC7579Account account;
@@ -129,7 +129,7 @@ contract TARRecoveryExecutorLifecycleTest is Test {
         assertEq(lockTime, 0);
         assertFalse(executor.isInitialized(address(account)));
 
-        (,,,, TARRecoveryExecutor.RecoveryStatus status) = _recoveryOf(address(account));
+        (,,,,, TARRecoveryExecutor.RecoveryStatus status) = _recoveryOf(address(account));
         assertEq(uint8(status), STATUS_NONE);
     }
 
@@ -150,7 +150,8 @@ contract TARRecoveryExecutorLifecycleTest is Test {
         view
         returns (
             address broadcasterAddress,
-            address newSigner,
+            uint256 newPubKeyX,
+            uint256 newPubKeyY,
             uint256 stakedValue,
             uint256 revealTimestamp,
             TARRecoveryExecutor.RecoveryStatus status

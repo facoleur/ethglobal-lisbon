@@ -12,11 +12,11 @@ import {ITARRecovery} from "./interfaces/ITARRecovery.sol";
 /// `lockTime`, during which the account owner can reject/veto the attempt and confiscate the
 /// stake.
 ///
-/// Milestone B scope: full commit-reveal state machine, with `newSigner` as a plain `address`
-/// (ECDSA, temporary) — the switch to a WebAuthn `(pubKeyX, pubKeyY)` pair is Milestone C.
-/// `finalizeRecovery` rotates the signer on a fixed, constructor-set `validator` address (a test
-/// mock at this milestone) — never a caller-supplied target, which would let anyone make
-/// `addressToRecover` execute an arbitrary call with the account's authority.
+/// Milestone C scope: full commit-reveal state machine, with the new signer as a WebAuthn/P-256
+/// `(pubKeyX, pubKeyY)` pair — replacing the Milestone B `newSigner` (plain `address`, ECDSA,
+/// temporary). `finalizeRecovery` rotates the signer on a fixed, constructor-set `validator`
+/// address (a test mock at this milestone) — never a caller-supplied target, which would let
+/// anyone make `addressToRecover` execute an arbitrary call with the account's authority.
 contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
     enum RecoveryStatus {
         None, // no recovery in progress on this account
@@ -30,11 +30,12 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
         uint256 lockTime;
     }
 
-    /// @dev Milestone B (ECDSA, temporary) shape. Becomes `newPubKeyX`/`newPubKeyY` (uint256) at
-    /// Milestone C — not anticipated here.
+    /// @dev Milestone C (WebAuthn) shape — `pubKeyX`/`pubKeyY` (uint256) replaced the Milestone B
+    /// `newSigner` (address).
     struct RecoveryRequest {
         address broadcasterAddress;
-        address newSigner;
+        uint256 newPubKeyX;
+        uint256 newPubKeyY;
         uint256 stakedValue;
         uint256 revealTimestamp;
         RecoveryStatus status;
@@ -105,26 +106,38 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
     /// @dev Check order goes cheapest-first, before recomputing the commitment hash. A wrong
     /// `msg.value` reverts the whole transaction — no state is ever written on a bad amount
     /// (no `Failed` status/recovery function needed, see `context-full-implementation.md` §4.1).
-    function revealRecovery(address addressToRecover, address broadcasterAddress, address newSigner, bytes32 salt)
-        external
-        payable
-    {
-        if (!_isInitialized(addressToRecover)) revert NotInitialized(addressToRecover);
+    /// `pubKeyX`/`pubKeyY` zero-checked here (not strictly required for correctness — an invalid
+    /// key would simply make `finalizeRecovery` revert later — but fails fast at reveal instead
+    /// of after the caller waits out the full `lockTime`).
+    function revealRecovery(
+        address addressToRecover,
+        address broadcasterAddress,
+        uint256 pubKeyX,
+        uint256 pubKeyY,
+        bytes32 salt
+    ) external payable {
+        if (!_isInitialized(addressToRecover)) {
+            revert NotInitialized(addressToRecover);
+        }
         if (recoveries[addressToRecover].status == RecoveryStatus.Revealed) {
             revert RecoveryAlreadyActive(addressToRecover);
         }
         if (msg.sender != broadcasterAddress) revert InvalidBroadcaster();
+        if (pubKeyX == 0 || pubKeyY == 0) revert InvalidPublicKey();
 
-        bytes32 commitment = keccak256(abi.encodePacked(addressToRecover, broadcasterAddress, newSigner, salt));
+        bytes32 commitment = keccak256(abi.encodePacked(addressToRecover, broadcasterAddress, pubKeyX, pubKeyY, salt));
         if (!pendingCommitments[commitment]) revert CommitmentNotFound();
 
-        if (msg.value != configs[addressToRecover].lockValue) revert WrongStakedAmount();
+        if (msg.value != configs[addressToRecover].lockValue) {
+            revert WrongStakedAmount();
+        }
 
         delete pendingCommitments[commitment];
 
         recoveries[addressToRecover] = RecoveryRequest({
             broadcasterAddress: broadcasterAddress,
-            newSigner: newSigner,
+            newPubKeyX: pubKeyX,
+            newPubKeyY: pubKeyY,
             stakedValue: msg.value,
             revealTimestamp: block.timestamp,
             status: RecoveryStatus.Revealed
@@ -141,7 +154,9 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
     /// CEI: `status` updated before the stake transfer. `ReentrancyGuard` on the external call.
     function challengeRecovery(address addressToRecover, bytes calldata ownerSignature) external nonReentrant {
         RecoveryRequest storage req = recoveries[addressToRecover];
-        if (req.status != RecoveryStatus.Revealed) revert RecoveryNotRevealed(addressToRecover);
+        if (req.status != RecoveryStatus.Revealed) {
+            revert RecoveryNotRevealed(addressToRecover);
+        }
 
         bytes32 rejectHash = keccak256(
             abi.encodePacked(
@@ -171,16 +186,19 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
     /// the stake transfer. `ReentrancyGuard` on both.
     function finalizeRecovery(address addressToRecover) external nonReentrant {
         RecoveryRequest storage req = recoveries[addressToRecover];
-        if (req.status != RecoveryStatus.Revealed) revert RecoveryNotRevealed(addressToRecover);
+        if (req.status != RecoveryStatus.Revealed) {
+            revert RecoveryNotRevealed(addressToRecover);
+        }
         if (block.timestamp < req.revealTimestamp + configs[addressToRecover].lockTime) {
             revert TimelockNotElapsed(addressToRecover);
         }
 
         uint256 stake = req.stakedValue;
-        address newSigner = req.newSigner;
+        uint256 pubKeyX = req.newPubKeyX;
+        uint256 pubKeyY = req.newPubKeyY;
         req.status = RecoveryStatus.Finalized;
 
-        bytes memory rotationCalldata = abi.encodeWithSignature("setNewOwner(address)", newSigner);
+        bytes memory rotationCalldata = abi.encodeWithSignature("setNewOwner(uint256,uint256)", pubKeyX, pubKeyY);
         IERC7579Account(addressToRecover)
             .executeFromExecutor(ExecLib.encodeSimpleSingle(), ExecLib.encodeSingle(validator, 0, rotationCalldata));
 
