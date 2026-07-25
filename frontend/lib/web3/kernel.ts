@@ -6,6 +6,7 @@ export type PasskeyResult = {
   accountAddress: `0x${string}`;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function registerPasskey(_name: string): Promise<PasskeyResult> {
   await new Promise((r) => setTimeout(r, 800));
   return {
