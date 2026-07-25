@@ -5,6 +5,8 @@
       "subtitle": "Create or recover your wallet.",
       "createWallet": "Create a wallet",
       "creating": "Setting up your wallet…",
+      "loginWithPasskey": "I already have a wallet",
+      "loggingIn": "Signing in…",
       "recoverWallet": "Recover a wallet"
     },
     "Recovery": {

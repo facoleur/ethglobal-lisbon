@@ -15,6 +15,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { setCredential } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   async function handleCreateWallet() {
     setIsCreating(true);
@@ -26,6 +27,19 @@ export default function LoginPage() {
       toast.error(tCommon("error"));
     } finally {
       setIsCreating(false);
+    }
+  }
+
+  async function handleLogin() {
+    setIsLoggingIn(true);
+    try {
+      const session = await createKernelSession("login", "TAR Wallet");
+      setCredential(session.authenticatorId, session.account.address);
+      router.push("/");
+    } catch {
+      toast.error(tCommon("error"));
+    } finally {
+      setIsLoggingIn(false);
     }
   }
 
@@ -42,9 +56,20 @@ export default function LoginPage() {
         size="lg"
         className="w-full rounded-2xl py-4"
         onClick={handleCreateWallet}
-        disabled={isCreating}
+        disabled={isCreating || isLoggingIn}
       >
         {isCreating ? t("creating") : t("createWallet")}
+      </Button>
+
+      {/* login with passkey button */}
+      <Button
+        size="lg"
+        variant="outline"
+        className="w-full rounded-2xl py-4"
+        onClick={handleLogin}
+        disabled={isCreating || isLoggingIn}
+      >
+        {isLoggingIn ? t("loggingIn") : t("loginWithPasskey")}
       </Button>
 
       {/* recover wallet button */}
