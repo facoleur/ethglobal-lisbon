@@ -16,22 +16,31 @@ export default function LoginPage() {
   const { register, isPending: isCreating } = useRegisterPasskey();
   const { login, isPending: isLoggingIn } = useLoginPasskey();
   const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [passkeyAttempt, setPasskeyAttempt] = useState<
+    "register" | "login" | null
+  >(null);
 
   async function handleCreateWallet() {
+    setPasskeyAttempt("register");
     try {
       await register("TAR Wallet");
       router.push("/");
     } catch (cause) {
       toast.error(t("passkeyError", { message: getErrorMessage(cause) }));
+    } finally {
+      setPasskeyAttempt(null);
     }
   }
 
   async function handleLogin() {
+    setPasskeyAttempt("login");
     try {
       await login("TAR Wallet");
       router.push("/");
     } catch (cause) {
       toast.error(t("passkeyError", { message: getErrorMessage(cause) }));
+    } finally {
+      setPasskeyAttempt(null);
     }
   }
 
@@ -54,9 +63,9 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-auto flex flex-col gap-3">
-          {(isCreating || isLoggingIn) && (
+          {passkeyAttempt && (
             <p className="text-muted-foreground text-center text-sm">
-              {t("waitingForPasskey")}
+              {t("passkeyTapReceived", { mode: passkeyAttempt })}
             </p>
           )}
           <Button
