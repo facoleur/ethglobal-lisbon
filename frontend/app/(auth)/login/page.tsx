@@ -54,6 +54,11 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-auto flex flex-col gap-3">
+          {(isCreating || isLoggingIn) && (
+            <p className="text-muted-foreground text-center text-sm">
+              {t("waitingForPasskey")}
+            </p>
+          )}
           <Button
             size="lg"
             className="w-full"
