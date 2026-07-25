@@ -1,46 +1,21 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/page-header";
-import { useTranslations } from "next-intl";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useRecoveryStore } from "@/lib/store/recovery";
+import { StepStake } from "@/components/recovery/step-stake";
+import { StepWaiting } from "@/components/recovery/step-waiting";
 
 export default function RecoveryPage() {
-  const t = useTranslations("Auth.Recovery");
+  const router = useRouter();
+  const { status, hasHydrated } = useRecoveryStore();
 
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (status === "idle") router.replace("/login");
+  }, [status, hasHydrated, router]);
 
-      {/* address input */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">{t("addressLabel")}</label>
-        <input
-          type="text"
-          placeholder={t("addressPlaceholder")}
-          className="border-border rounded-xl border px-4 py-3 text-sm outline-none"
-        />
-      </div>
-
-      {/* QR code placeholder */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="border-border bg-muted flex h-48 w-48 items-center justify-center rounded-2xl border">
-          <span className="text-muted-foreground text-xs">
-            {t("qrPlaceholder")}
-          </span>
-        </div>
-        <p className="text-muted-foreground text-center text-xs">
-          {t("qrCaption")}
-        </p>
-      </div>
-
-      {/* instructions */}
-      <div className="border-border rounded-2xl border p-4">
-        <p className="mb-2 text-sm font-medium">{t("instructionsTitle")}</p>
-        <ol className="text-muted-foreground flex flex-col gap-1.5 text-sm">
-          <li>1. {t("step1")}</li>
-          <li>2. {t("step2")}</li>
-          <li>3. {t("step3")}</li>
-        </ol>
-      </div>
-    </div>
-  );
+  if (!hasHydrated || status === "idle") return null;
+  if (status === "staking") return <StepStake />;
+  return <StepWaiting />;
 }

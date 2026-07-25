@@ -29,6 +29,12 @@ On utilise wagmi (sans la wallet connection du coup) pour read les contract et p
 prefer not using useeffect when possible. find smarter, better more performant alternative and make sure any useeffect is 100% necessary
 Images => nextjs <Image> tag
 
+# Logic separation
+
+Keep components dumb. All calculations, pure functions, formatters, constants, and business logic must live in `lib/` files — never inline in component files.
+
+Components only: render JSX, wire event handlers, and manage local UI state (loading, toggle). If you find yourself writing a function or constant inside a component file that isn't JSX or an event handler, it belongs in `lib/`.
+
 # Typescript
 dont use `any` type
 prefer using `type` over `interface` unless really needed
