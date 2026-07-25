@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useSendKernelTransaction } from "@/hooks/use-kernel";
+import { getErrorMessage } from "@/lib/errors";
 
 type SendDrawerProps = {
   open: boolean;
@@ -16,7 +17,6 @@ type SendDrawerProps = {
 
 export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
   const t = useTranslations("App.SendDrawer");
-  const tCommon = useTranslations("Common");
   const formRef = useRef<HTMLFormElement>(null);
   const { sendTransaction, isPending } = useSendKernelTransaction();
   const [recipientFilled, setRecipientFilled] = useState(false);
@@ -68,8 +68,8 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
       toast.success(t("success"));
       formRef.current?.reset();
       onOpenChange(false);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (cause) {
+      toast.error(t("sendFailed", { message: getErrorMessage(cause) }));
     }
   };
 

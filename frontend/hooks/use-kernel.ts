@@ -41,7 +41,8 @@ export function useLoginPasskey() {
   const { connect, pendingMode, error } = useKernelContext();
 
   return {
-    login: (passkeyName: string) => connect("login", passkeyName),
+    login: (passkeyName: string, accountAddress?: Address) =>
+      connect("login", passkeyName, accountAddress),
     isPending: pendingMode === "login",
     error,
   };

@@ -16,6 +16,14 @@ export default function RecoveryPage() {
   }, [status, hasHydrated, router]);
 
   if (!hasHydrated || status === "idle") return null;
-  if (status === "staking") return <StepStake />;
+  if (
+    status === "awaiting_funding" ||
+    status === "ready_to_commit" ||
+    status === "requesting" ||
+    status === "waiting_reveal" ||
+    status === "revealing"
+  ) {
+    return <StepStake />;
+  }
   return <StepWaiting />;
 }

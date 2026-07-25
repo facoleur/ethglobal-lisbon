@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { Address } from "viem";
 import { useWalletStore } from "@/lib/store/wallet";
 import {
   createKernelSession,
@@ -24,7 +25,11 @@ type KernelContextValue = {
   status: KernelStatus;
   pendingMode: PasskeyMode | null;
   error: Error | null;
-  connect: (mode: PasskeyMode, passkeyName: string) => Promise<void>;
+  connect: (
+    mode: PasskeyMode,
+    passkeyName: string,
+    accountAddress?: Address,
+  ) => Promise<void>;
   disconnect: () => void;
 };
 
@@ -77,7 +82,11 @@ export function KernelProvider({ children }: { children: ReactNode }) {
     restore();
   }, [credentialId, accountAddress, publicKey]);
 
-  const connect = async (mode: PasskeyMode, passkeyName: string) => {
+  const connect = async (
+    mode: PasskeyMode,
+    passkeyName: string,
+    targetAccount?: Address,
+  ) => {
     if (isConnecting.current) return;
 
     const name = passkeyName.trim() || DEFAULT_PASSKEY_NAME;
@@ -88,7 +97,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const nextSession = await createKernelSession(mode, name);
+      const nextSession = await createKernelSession(mode, name, targetAccount);
       didRestore.current = true;
       setSession(nextSession);
       setStatus("connected");

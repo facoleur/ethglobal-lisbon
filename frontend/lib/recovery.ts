@@ -1,27 +1,31 @@
-import { parseEther } from "viem";
-import { tarRecoveryExecutorAddress } from "@/lib/kernel/config";
-
-// TODO: replace with minimumDeposit() read from TimelockRecovery contract
-export const MOCK_LOCK_VALUE_ETH = "0.001";
-
-// TODO: replace with recoveryDelay() read from TimelockRecovery contract (formatted for display)
-export const MOCK_LOCK_TIME_LABEL = "30 seconds";
-
-// TODO: replace with recoveryDelay() read from TimelockRecovery contract (in ms, for local countdown seed)
-export const MOCK_LOCK_TIME_MS = 30_000;
+import { formatEther, parseEther } from "viem";
 
 export const SEPOLIA_CHAIN_ID = 11155111;
+export const BROADCASTER_GAS_BUFFER = parseEther("0.01");
+export const FINALIZER_GAS_BUFFER = parseEther("0.001");
 
-export const RECOVERY_CONTRACT_ADDRESS =
-  tarRecoveryExecutorAddress ?? "0x0000000000000000000000000000000000000000";
+const MOCK_CHALLENGE_WINDOW_MS = 30_000;
+export const MOCK_LOCK_TIME_LABEL = "1 minute";
+export const MOCK_LOCK_VALUE_ETH = 0.01;
+export const MOCK_LOCK_TIME_MS = 60 * 1000; // 1 minutes
 
 export function buildEip681Uri(
   to: string,
   chainId: number,
-  valueEth: string,
+  value: bigint,
 ): string {
-  const valueWei = parseEther(valueEth).toString();
-  return `ethereum:${to}@${chainId}?value=${valueWei}`;
+  return `ethereum:${to}@${chainId}?value=${value.toString()}`;
+}
+
+export function formatEth(value: bigint): string {
+  return formatEther(value).replace(/\.0+$|(?<=\.[0-9]*[1-9])0+$/, "");
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds % 86_400 === 0) return `${seconds / 86_400}d`;
+  if (seconds % 3_600 === 0) return `${seconds / 3_600}h`;
+  if (seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${seconds}s`;
 }
 
 export function truncateAddress(addr: string): string {
@@ -51,14 +55,19 @@ export function computeProgress(
   return Math.min(100, (elapsed / total) * 100);
 }
 
-// TODO: replace with commitRecovery + revealRecovery user operations on TimelockRecovery contract
-// executableAt comes from getRecovery(account).executableAt after reveal
-export async function simulateStake(): Promise<{ executableAt: number }> {
-  await new Promise((r) => setTimeout(r, 2_000));
-  return { executableAt: Date.now() + MOCK_LOCK_TIME_MS };
+// TODO: replace with vetoRecovery user operation on TimelockRecovery contract
+export async function simulateVeto(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 1_500));
 }
 
-// TODO: replace with finalizeRecovery user operation on TimelockRecovery contract
-export async function simulateFinalize(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 1_500));
+// TODO: replace with getRecovery(connectedAddress) poll on TimelockRecovery contract
+export async function simulateIncomingRecovery(): Promise<{
+  recovererAddress: `0x${string}`;
+  executableAt: number;
+}> {
+  await new Promise((r) => setTimeout(r, 500));
+  return {
+    recovererAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    executableAt: Date.now() + MOCK_CHALLENGE_WINDOW_MS,
+  };
 }
