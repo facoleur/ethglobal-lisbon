@@ -173,7 +173,7 @@ export async function generateStyledQRCodeSvg(
 
   const content = generateQRCodeSvgContent(matrix, fullOptions);
 
-  return `<svg viewBox="0 0 ${options.size} ${options.size}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg viewBox="0 0 ${options.size} ${options.size}" width="${options.size}" height="${options.size}" xmlns="http://www.w3.org/2000/svg">
 ${content}
 </svg>`;
 }

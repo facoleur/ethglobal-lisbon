@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { generateStyledQRCodeSvg } from "@/lib/qr";
 
 type QrCodeProps = {
@@ -9,9 +9,12 @@ type QrCodeProps = {
 };
 
 export function QrCode({ value, size = 200 }: QrCodeProps) {
-  const [svg, setSvg] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
     let cancelled = false;
     generateStyledQRCodeSvg(value, {
       size,
@@ -22,19 +25,12 @@ export function QrCode({ value, size = 200 }: QrCodeProps) {
       outerEyeBorderRadius: 8,
       innerEyeBorderRadius: 3,
     }).then((s) => {
-      if (!cancelled) setSvg(s);
+      if (!cancelled) el.innerHTML = s;
     });
     return () => {
       cancelled = true;
     };
   }, [value, size]);
 
-  if (!svg) return null;
-
-  return (
-    <div
-      className="flex items-center justify-center"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
+  return <div ref={containerRef} className="flex items-center justify-center" />;
 }
