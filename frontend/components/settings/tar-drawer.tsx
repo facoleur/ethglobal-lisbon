@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Drawer } from "vaul";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { LockValueSlider } from "@/components/settings/lock-value-slider";
 import { LockTimePicker } from "@/components/settings/lock-time-picker";
 import { useUpdateRecoveryParams } from "@/hooks/use-tar-recovery";
@@ -46,78 +46,60 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
   };
 
   return (
-    <Drawer.Root open={open} onOpenChange={handleOpenChange}>
-      <Drawer.Portal>
-        {/* TAR settings drawer */}
-        <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-        <Drawer.Content className="bg-background fixed right-0 bottom-0 left-0 flex flex-col rounded-t-2xl">
-          <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-zinc-300" />
-          <div className="mx-auto w-full max-w-sm px-6 pt-4 pb-10 flex flex-col gap-6">
-            <Drawer.Title className="text-lg font-semibold">
-              {t("title")}
-            </Drawer.Title>
+    <BottomSheet open={open} onOpenChange={handleOpenChange} title={t("title")}>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-foreground">
+            {t("lockValue")}
+          </label>
+          <Button
+            variant="secondary"
+            size="xs"
+            disabled={isPending}
+            onClick={() => setLockValue(RECOMMENDED_LOCK_VALUE)}
+          >
+            {t("lockValueRecommended")}
+          </Button>
+        </div>
+        <LockValueSlider value={lockValue} onChange={setLockValue} />
+      </div>
 
-            {/* protected balance threshold */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">
-                  {t("lockValue")}
-                </label>
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  disabled={isPending}
-                  onClick={() => setLockValue(RECOMMENDED_LOCK_VALUE)}
-                >
-                  {t("lockValueRecommended")}
-                </Button>
-              </div>
-              <LockValueSlider value={lockValue} onChange={setLockValue} />
-            </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-foreground">
+            {t("lockTime")}
+          </label>
+          <Button
+            variant="secondary"
+            size="xs"
+            disabled={isPending}
+            onClick={() => {
+              setLockTimeValue(RECOMMENDED_LOCK_TIME_VALUE);
+              setLockTimeUnit(RECOMMENDED_LOCK_TIME_UNIT);
+            }}
+          >
+            {t("lockTimeRecommended")}
+          </Button>
+        </div>
+        <LockTimePicker
+          value={lockTimeValue}
+          unit={lockTimeUnit}
+          onValueChange={setLockTimeValue}
+          onUnitChange={setLockTimeUnit}
+        />
+      </div>
 
-            {/* recovery timelock */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">
-                  {t("lockTime")}
-                </label>
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  disabled={isPending}
-                  onClick={() => {
-                    setLockTimeValue(RECOMMENDED_LOCK_TIME_VALUE);
-                    setLockTimeUnit(RECOMMENDED_LOCK_TIME_UNIT);
-                  }}
-                >
-                  {t("lockTimeRecommended")}
-                </Button>
-              </div>
-              <LockTimePicker
-                value={lockTimeValue}
-                unit={lockTimeUnit}
-                onValueChange={setLockTimeValue}
-                onUnitChange={setLockTimeUnit}
-              />
-            </div>
-
-            {/* TAR settings action */}
-            {!isConfigured && (
-              <p className="text-muted-foreground text-sm">
-                {t("notConfigured")}
-              </p>
-            )}
-            <Button
-              size="lg"
-              className="w-full rounded-xl"
-              disabled={!isConfigured || isPending}
-              onClick={handleSave}
-            >
-              {isPending ? t("savingButton") : t("saveButton")}
-            </Button>
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+      {!isConfigured && (
+        <p className="text-muted-foreground text-sm">{t("notConfigured")}</p>
+      )}
+      <Button
+        size="lg"
+        className="w-full rounded-xl"
+        disabled={!isConfigured || isPending}
+        onClick={handleSave}
+      >
+        {isPending ? t("savingButton") : t("saveButton")}
+      </Button>
+    </BottomSheet>
   );
 }

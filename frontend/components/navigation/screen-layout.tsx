@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 type ScreenLayoutProps = {
   children: React.ReactNode;
   back?: boolean;
+  stretch?: boolean;
 };
 
 function ChevronLeft() {
@@ -24,12 +25,15 @@ function ChevronLeft() {
   );
 }
 
-export function ScreenLayout({ children, back = false }: ScreenLayoutProps) {
+export function ScreenLayout({
+  children,
+  back = false,
+  stretch = false,
+}: ScreenLayoutProps) {
   const router = useRouter();
 
   return (
     <div className="flex h-full flex-col">
-      {/* optional back navigation */}
       {back && (
         <div className="shrink-0 flex items-center px-2 pt-4">
           <button
@@ -41,10 +45,17 @@ export function ScreenLayout({ children, back = false }: ScreenLayoutProps) {
           </button>
         </div>
       )}
-      {/* centered screen content */}
-      <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8">
-        <div className="w-full max-w-sm">{children}</div>
-      </div>
+      {stretch ? (
+        <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8">
+          <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
+            {children}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8">
+          <div className="w-full max-w-sm">{children}</div>
+        </div>
+      )}
     </div>
   );
 }
