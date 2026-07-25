@@ -1,6 +1,7 @@
 FRONTEND_DIR := frontend
+CONTRACTS_DIR := contracts
 
-.PHONY: dev build start lint install deploy setup check
+.PHONY: dev build start lint install deploy setup check contracts-install contracts-build contracts-test deploy-kernel-anvil
 
 dev:
 	cd $(FRONTEND_DIR) && npm run dev
@@ -16,15 +17,31 @@ lint:
 
 install:
 	cd $(FRONTEND_DIR) && npm install
+	$(MAKE) contracts-install
 
 setup:
 	cd $(FRONTEND_DIR) && npm install
+	$(MAKE) contracts-install
 	lefthook install
 
 check:
 	cd $(FRONTEND_DIR) && npm run lint
 	cd $(FRONTEND_DIR) && npm run format:check
 	cd $(FRONTEND_DIR) && npm run typecheck
+	$(MAKE) contracts-build
+	$(MAKE) contracts-test
 
 deploy:
 	cd $(FRONTEND_DIR) && npx vercel --prod
+
+contracts-install:
+	cd $(CONTRACTS_DIR) && forge install
+
+contracts-build:
+	cd $(CONTRACTS_DIR) && forge build
+
+contracts-test:
+	cd $(CONTRACTS_DIR) && forge test -vvv
+
+deploy-kernel-anvil:
+	cd $(CONTRACTS_DIR) && forge script script/DeployKernelBidon.s.sol --rpc-url http://localhost:8545 --broadcast

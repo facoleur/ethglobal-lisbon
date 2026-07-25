@@ -16,3 +16,13 @@ pre-commit:
     frontend-typecheck:
       glob: "frontend/**/*.{ts,tsx}"
       run: cd frontend && node_modules/.bin/tsc --noEmit
+
+    contracts-fmt:
+      root: "contracts/"
+      glob: "*.sol"
+      run: forge fmt --check
+
+    contracts-build:
+      root: "contracts/"
+      glob: "*.sol"
+      run: forge build

@@ -1,0 +1,15 @@
+[submodule "contracts/lib/forge-std"]
+	path = contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "contracts/lib/openzeppelin-contracts"]
+	path = contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "contracts/lib/account-abstraction"]
+	path = contracts/lib/account-abstraction
+	url = https://github.com/eth-infinitism/account-abstraction
+[submodule "contracts/lib/kernel"]
+	path = contracts/lib/kernel
+	url = https://github.com/zerodevapp/kernel
+[submodule "contracts/lib/kernel-7579-plugins"]
+	path = contracts/lib/kernel-7579-plugins
+	url = https://github.com/zerodevapp/kernel-7579-plugins
