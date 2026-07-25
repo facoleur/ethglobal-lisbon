@@ -45,10 +45,26 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Mobile-optimized type scale — all sizes nudged up vs Tailwind defaults */
+  --text-xs: 0.8125rem; /* 13px  (was 12px) — nav labels, badges          */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.9375rem; /* 15px  (was 14px) — primary body, labels         */
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1.0625rem; /* 17px  (was 16px) — inputs, card text            */
+  --text-base--line-height: 1.625rem;
+  --text-lg: 1.1875rem; /* 19px  (was 18px) — drawer titles, action labels */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.375rem; /* 22px  (was 20px) — section headings             */
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 1.625rem; /* 26px  (was 24px) — page titles                  */
+  --text-2xl--line-height: 2rem;
+  --text-4xl: 2.5rem; /* 40px  (was 36px) — balance display              */
+  --text-4xl--line-height: 2.75rem;
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.97 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -56,9 +72,9 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.92 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.92 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
@@ -116,6 +132,10 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@utility squircle {
+  corner-shape: squircle;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -124,7 +144,7 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans bg-background;
   }
 
   html,
@@ -132,6 +152,10 @@
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: pan-y;
+  }
+
+  body {
+    padding-top: env(safe-area-inset-top);
   }
 
   input,

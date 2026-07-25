@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { isAddress, parseEther } from "viem";
 import { toast } from "sonner";
@@ -19,10 +19,17 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
   const tCommon = useTranslations("Common");
   const formRef = useRef<HTMLFormElement>(null);
   const { sendTransaction, isPending } = useSendKernelTransaction();
+  const [recipientFilled, setRecipientFilled] = useState(false);
+  const [amountFilled, setAmountFilled] = useState(false);
+  const canSubmit = recipientFilled && amountFilled;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isPending) return;
-    if (!nextOpen) formRef.current?.reset();
+    if (!nextOpen) {
+      formRef.current?.reset();
+      setRecipientFilled(false);
+      setAmountFilled(false);
+    }
     onOpenChange(nextOpen);
   };
 
@@ -81,6 +88,7 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
           placeholder={t("recipientPlaceholder")}
           disabled={isPending}
           required
+          onChange={(e) => setRecipientFilled(e.target.value.trim() !== "")}
         />
         <Input
           name="amount"
@@ -92,12 +100,13 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
           placeholder={t("amountPlaceholder")}
           disabled={isPending}
           required
+          onChange={(e) => setAmountFilled(e.target.value.trim() !== "")}
         />
         <Button
           type="submit"
           size="lg"
           className="w-full rounded-xl"
-          disabled={isPending}
+          disabled={isPending || !canSubmit}
         >
           {isPending ? t("sendingButton") : t("confirmButton")}
         </Button>

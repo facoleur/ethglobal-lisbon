@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useRecoveryStore } from "@/lib/store/recovery";
 import {
-  formatCountdown,
   computeProgress,
+  formatCountdown,
   simulateFinalize,
 } from "@/lib/recovery";
+import { useRecoveryStore } from "@/lib/store/recovery";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function StepWaiting() {
   const t = useTranslations("Auth.Recovery");

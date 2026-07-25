@@ -19,7 +19,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
     <Link
       href={href}
       className={cn(
-        "flex flex-1 flex-col items-center gap-1 py-3 text-xs",
+        "flex flex-col items-center gap-1 px-8 py-3 text-xs",
         active ? "text-foreground" : "text-muted-foreground",
       )}
     >
@@ -34,19 +34,21 @@ export function BottomNav() {
   const t = useTranslations("Navigation");
 
   return (
-    <nav className="border-border flex shrink-0 border-t pb-[env(safe-area-inset-bottom)]">
-      <NavItem
-        href="/"
-        icon={Home01Icon}
-        label={t("home")}
-        active={pathname === "/"}
-      />
-      <NavItem
-        href="/settings"
-        icon={Settings01Icon}
-        label={t("settings")}
-        active={pathname === "/settings"}
-      />
-    </nav>
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center px-6 pb-[max(env(safe-area-inset-bottom),36px)] z-40 pointer-events-none">
+      <nav className="pointer-events-auto flex rounded-full backdrop-blur-xl bg-white/70">
+        <NavItem
+          href="/"
+          icon={Home01Icon}
+          label={t("home")}
+          active={pathname === "/"}
+        />
+        <NavItem
+          href="/settings"
+          icon={Settings01Icon}
+          label={t("settings")}
+          active={pathname === "/settings"}
+        />
+      </nav>
+    </div>
   );
 }

@@ -15,6 +15,7 @@
       "addressLabel": "Address to recover",
       "addressPlaceholder": "Paste or type the address (0x...)",
       "continueButton": "Continue",
+      "targetAddressLabel": "Address",
       "step2Title": "Stake & start recovery",
       "step2Subtitle": "You need to send a deposit to initiate the recovery process.",
       "depositLabel": "Lock value",
@@ -42,7 +43,10 @@
     "Home": {
       "balanceLabel": "Balance",
       "sendButton": "Send",
-      "receiveButton": "Receive"
+      "receiveButton": "Receive",
+      "swapButton": "Swap",
+      "activityTitle": "Activity",
+      "activityEmpty": "No transactions yet"
     },
     "Settings": {
       "title": "Settings",
@@ -54,10 +58,9 @@
         "title": "TAR Settings",
         "lockValue": "Lock Value",
         "lockValuePlaceholder": "0.1 ETH",
-        "lockValueRecommended": "Recommended",
+        "useRecommended": "Use recommended",
         "lockTime": "Lock Time",
         "lockTimePlaceholder": "7 days",
-        "lockTimeRecommended": "Recommended",
         "days": "Days",
         "weeks": "Weeks",
         "months": "Months",
@@ -89,6 +92,18 @@
       "title": "Receive",
       "copyButton": "Copy address",
       "copied": "Address copied!"
+    },
+    "VetoDrawer": {
+      "title": "Recovery attempt detected",
+      "subtitle": "Someone is trying to take control of your wallet.",
+      "requesterLabel": "Requested by",
+      "timeRemainingLabel": "Time left to veto",
+      "expiredLabel": "Challenge window expired",
+      "vetoButton": "Veto recovery",
+      "vetoingButton": "Vetoing…",
+      "allowButton": "I initiated this",
+      "successTitle": "Recovery vetoed",
+      "successSubtitle": "The recovery attempt has been rejected."
     }
   },
   "Navigation": {

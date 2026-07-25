@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { useKernelAccount } from "@/hooks/use-kernel";
 import { QrCode } from "@/components/receive/qr-code";
+import { Button } from "@/components/ui/button";
+import { TruncatedAddress } from "@/components/ui/truncated-address";
+import { useKernelAccount } from "@/hooks/use-kernel";
 
 type ReceiveDrawerProps = {
   open: boolean;
@@ -16,11 +17,13 @@ export function ReceiveDrawer({ open, onOpenChange }: ReceiveDrawerProps) {
   const t = useTranslations("App.ReceiveDrawer");
   const tCommon = useTranslations("Common");
   const { address } = useKernelAccount();
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    if (!address) return;
+    if (!address || copied) return;
     await navigator.clipboard.writeText(address);
-    toast.success(t("copied"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   };
 
   return (
@@ -30,11 +33,14 @@ export function ReceiveDrawer({ open, onOpenChange }: ReceiveDrawerProps) {
           <div className="bg-white p-3 rounded-xl">
             <QrCode value={address} size={200} />
           </div>
-          <p className="font-mono text-xs text-center break-all text-muted-foreground">
-            {address}
-          </p>
-          <Button size="lg" className="w-full rounded-xl" onClick={handleCopy}>
-            {t("copyButton")}
+
+          <TruncatedAddress
+            address={address}
+            className="w-full text-sm font-medium text-center"
+          />
+
+          <Button size="lg" className="w-full rounded-2xl" onClick={handleCopy}>
+            {copied ? t("copiedButton") : t("copyButton")}
           </Button>
         </div>
       ) : (

@@ -52,11 +52,30 @@ export function computeProgress(
 }
 
 // TODO: replace with commitRecovery + revealRecovery user operations on TimelockRecovery contract
-export async function simulateStake(): Promise<void> {
+// executableAt comes from getRecovery(account).executableAt after reveal
+export async function simulateStake(): Promise<{ executableAt: number }> {
   await new Promise((r) => setTimeout(r, 2_000));
+  return { executableAt: Date.now() + MOCK_CHALLENGE_WINDOW_MS };
 }
 
 // TODO: replace with finalizeRecovery user operation on TimelockRecovery contract
 export async function simulateFinalize(): Promise<void> {
   await new Promise((r) => setTimeout(r, 1_500));
+}
+
+// TODO: replace with vetoRecovery user operation on TimelockRecovery contract
+export async function simulateVeto(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 1_500));
+}
+
+// TODO: replace with getRecovery(connectedAddress) poll on TimelockRecovery contract
+export async function simulateIncomingRecovery(): Promise<{
+  recovererAddress: `0x${string}`;
+  executableAt: number;
+}> {
+  await new Promise((r) => setTimeout(r, 500));
+  return {
+    recovererAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    executableAt: Date.now() + MOCK_CHALLENGE_WINDOW_MS,
+  };
 }
