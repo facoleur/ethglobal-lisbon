@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+/// @notice Test double for `finalizeRecovery`'s rotation target. Milestone B tests the
+/// `TARRecoveryExecutor` state machine against this trivial mock, not a real validator — neither
+/// `ECDSAValidator` nor Kernel's stock `WebAuthnValidator` expose a rotation function, and the
+/// real `TARWebAuthnValidator` (Milestone D) is built separately.
+contract MockRotatableValidator {
+    mapping(address account => address owner) public currentOwner;
+
+    /// @dev `msg.sender` is the account itself: `finalizeRecovery` reaches this function via
+    /// `addressToRecover.executeFromExecutor(...)`, executed by the target account.
+    function setNewOwner(address newOwner) external {
+        currentOwner[msg.sender] = newOwner;
+    }
+}

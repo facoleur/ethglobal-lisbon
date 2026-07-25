@@ -6,10 +6,12 @@ import {IModule} from "kernel/interfaces/IERC7579Modules.sol";
 import {TARRecoveryExecutor} from "../../src/TARRecoveryExecutor.sol";
 import {ITARRecovery} from "../../src/interfaces/ITARRecovery.sol";
 import {MockERC7579Account} from "../mocks/MockERC7579Account.sol";
+import {MockRotatableValidator} from "../mocks/MockRotatableValidator.sol";
 
-/// @notice Milestone A: module skeleton, config lifecycle and ERC-7579 boilerplate.
-/// No business logic (Milestone B), no validator/mock validator, no real Kernel — a minimal
-/// mock account is enough since only `msg.sender` scoping matters here.
+/// @notice Module skeleton, config lifecycle and ERC-7579 boilerplate (Milestone A). Business
+/// logic (commit-reveal, challenge, finalize) is covered separately in
+/// `TARRecoveryExecutor.t.sol` (Milestone B) — a mock account/validator pair is still needed
+/// here only because the constructor and mock account now require them.
 contract TARRecoveryExecutorLifecycleTest is Test {
     // RecoveryStatus enum mirrored here to build calldata/assert values without exposing the
     // enum itself outside the contract.
@@ -29,8 +31,8 @@ contract TARRecoveryExecutorLifecycleTest is Test {
     uint256 constant LOCK_TIME = 3 days;
 
     function setUp() external {
-        executor = new TARRecoveryExecutor();
-        account = new MockERC7579Account();
+        executor = new TARRecoveryExecutor(address(new MockRotatableValidator()));
+        account = new MockERC7579Account(address(0xBEEF));
     }
 
     function _install(uint256 lockValue, uint256 lockTime) internal {
@@ -141,24 +143,6 @@ contract TARRecoveryExecutorLifecycleTest is Test {
         assertFalse(executor.isModuleType(3));
         assertFalse(executor.isModuleType(4));
         assertFalse(executor.isModuleType(0));
-    }
-
-    // ---------------------------------------------------------------------
-    // Business function stubs (Milestone B)
-    // ---------------------------------------------------------------------
-
-    function test_stubs_revertWithNotImplementedYet() external {
-        vm.expectRevert(ITARRecovery.NotImplementedYet.selector);
-        executor.requestRecovery(bytes32(uint256(1)));
-
-        vm.expectRevert(ITARRecovery.NotImplementedYet.selector);
-        executor.revealRecovery(address(1), address(2), address(3), bytes32(uint256(4)));
-
-        vm.expectRevert(ITARRecovery.NotImplementedYet.selector);
-        executor.challengeRecovery(address(1), "");
-
-        vm.expectRevert(ITARRecovery.NotImplementedYet.selector);
-        executor.finalizeRecovery(address(1));
     }
 
     function _recoveryOf(address addressToRecover)
