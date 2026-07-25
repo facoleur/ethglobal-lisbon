@@ -4,10 +4,10 @@ import { useState } from "react";
 import { Drawer } from "vaul";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { LockValueSlider } from "@/components/settings/lock-value-slider";
 import { LockTimePicker } from "@/components/settings/lock-time-picker";
 
-const RECOMMENDED_LOCK_VALUE = "0.1";
+const RECOMMENDED_LOCK_VALUE = 0.1;
 const RECOMMENDED_LOCK_TIME_VALUE = 7;
 const RECOMMENDED_LOCK_TIME_UNIT = "days";
 
@@ -18,7 +18,7 @@ type TarDrawerProps = {
 
 export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
   const t = useTranslations("App.Settings.TarDrawer");
-  const [lockValue, setLockValue] = useState("");
+  const [lockValue, setLockValue] = useState(RECOMMENDED_LOCK_VALUE);
   const [lockTimeValue, setLockTimeValue] = useState(
     RECOMMENDED_LOCK_TIME_VALUE,
   );
@@ -48,12 +48,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
                   {t("lockValueRecommended")}
                 </Button>
               </div>
-              <Input
-                variant="filled"
-                placeholder={t("lockValuePlaceholder")}
-                value={lockValue}
-                onChange={(e) => setLockValue(e.target.value)}
-              />
+              <LockValueSlider value={lockValue} onChange={setLockValue} />
             </div>
 
             <div className="flex flex-col gap-2">
