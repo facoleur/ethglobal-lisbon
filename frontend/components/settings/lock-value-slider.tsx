@@ -4,10 +4,10 @@ import { useCallback, useRef } from "react";
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import { haptic } from "@/lib/haptics";
 
-const MIN = 0;
-const MAX = 10;
-const STEP = 0.1;
-const TICK_COUNT = (MAX - MIN) / STEP + 1;
+const MIN = 0.001;
+const MAX = 0.1;
+const STEP = 0.001;
+const TICK_COUNT = Math.round((MAX - MIN) / STEP) + 1;
 
 type LockValueSliderProps = {
   value: number;
@@ -32,7 +32,7 @@ export function LockValueSlider({ value, onChange }: LockValueSliderProps) {
     <div className="flex flex-col gap-3">
       {/* selected protected balance */}
       <p className="text-2xl font-semibold tabular-nums">
-        {value.toFixed(1)}{" "}
+        {value.toFixed(3)}{" "}
         <span className="text-base font-medium text-muted-foreground">ETH</span>
       </p>
       <SliderPrimitive.Root

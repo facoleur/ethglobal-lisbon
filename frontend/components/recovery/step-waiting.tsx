@@ -2,27 +2,58 @@
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { QrCode } from "@/components/receive/qr-code";
+import { useLoginPasskey } from "@/hooks/use-kernel";
+import { useFinalizeTarRecovery } from "@/hooks/use-tar-recovery";
 import {
+  buildEip681Uri,
   computeProgress,
+  FINALIZER_GAS_BUFFER,
   formatCountdown,
-  simulateFinalize,
+  formatEth,
+  SEPOLIA_CHAIN_ID,
 } from "@/lib/recovery";
 import { useRecoveryStore } from "@/lib/store/recovery";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useBalance } from "wagmi";
 
 export function StepWaiting() {
   const t = useTranslations("Auth.Recovery");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
-  const { status, committedAt, executableAt, setStatus, clear } =
-    useRecoveryStore();
+  const {
+    status,
+    targetAccount,
+    broadcasterAddress,
+    committedAt,
+    executableAt,
+    clear,
+  } = useRecoveryStore();
+  const { login, isPending: isLoggingIn } = useLoginPasskey();
+  const finalization = useFinalizeTarRecovery();
   const [now, setNow] = useState(() => Date.now());
-  const [isFinalizing, setIsFinalizing] = useState(false);
+  const finalizerBalance = useBalance({
+    address: broadcasterAddress ?? undefined,
+    query: {
+      enabled: broadcasterAddress !== null && status === "waiting",
+      refetchInterval: 3_000,
+    },
+  });
 
   const isReady = executableAt !== null && now >= executableAt;
+  const isFinalizerFunded =
+    finalizerBalance.data !== undefined &&
+    finalizerBalance.data.value >= FINALIZER_GAS_BUFFER;
   const timeLeft = executableAt !== null ? Math.max(0, executableAt - now) : 0;
   const progressPercent = computeProgress(committedAt, executableAt, now);
+  const finalizerFundingUri = buildEip681Uri(
+    broadcasterAddress ?? "0x0000000000000000000000000000000000000000",
+    SEPOLIA_CHAIN_ID,
+    FINALIZER_GAS_BUFFER,
+  );
 
   useEffect(() => {
     if (status !== "waiting") return;
@@ -31,10 +62,37 @@ export function StepWaiting() {
   }, [status]);
 
   async function handleFinalize() {
-    setIsFinalizing(true);
-    await simulateFinalize();
-    setStatus("finalized");
-    setIsFinalizing(false);
+    try {
+      await finalization.finalize();
+    } catch {
+      toast.error(tCommon("error"));
+    }
+  }
+
+  async function handleCopyFinalizerAddress() {
+    if (!broadcasterAddress) return;
+
+    try {
+      await navigator.clipboard.writeText(broadcasterAddress);
+      toast.success(t("finalizerAddressCopied"));
+    } catch {
+      toast.error(tCommon("error"));
+    }
+  }
+
+  async function handleRecoveredLogin() {
+    if (!targetAccount) {
+      toast.error(tCommon("error"));
+      return;
+    }
+
+    try {
+      await login("TAR Recovery", targetAccount);
+      clear();
+      router.push("/");
+    } catch {
+      toast.error(tCommon("error"));
+    }
   }
 
   if (status === "finalized") {
@@ -50,12 +108,12 @@ export function StepWaiting() {
           <Button
             size="lg"
             className="w-full rounded-2xl py-4"
-            onClick={() => {
-              clear();
-              router.push("/login");
-            }}
+            onClick={handleRecoveredLogin}
+            disabled={isLoggingIn}
           >
-            {t("backToHome")}
+            {isLoggingIn
+              ? t("loggingInRecoveredWallet")
+              : t("loginRecoveredWallet")}
           </Button>
         </div>
       </div>
@@ -111,14 +169,37 @@ export function StepWaiting() {
       </div>
 
       {isReady && (
-        <div className="mt-auto pt-8">
+        <div className="mt-auto flex flex-col gap-4 pt-8">
+          {!isFinalizerFunded && (
+            <div className="flex flex-col items-center gap-3">
+              <QrCode value={finalizerFundingUri} />
+              <p className="text-muted-foreground text-center text-sm">
+                {t("finalizerFundingHint", {
+                  amount: formatEth(FINALIZER_GAS_BUFFER),
+                })}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-xl"
+                onClick={handleCopyFinalizerAddress}
+                disabled={!broadcasterAddress}
+              >
+                {t("copyFinalizerAddress")}
+              </Button>
+            </div>
+          )}
           <Button
             size="lg"
             className="w-full rounded-2xl py-4"
             onClick={handleFinalize}
-            disabled={isFinalizing}
+            disabled={!isFinalizerFunded || finalization.isPending}
           >
-            {isFinalizing ? t("finalizingButton") : t("finalizeButton")}
+            {finalization.isPending
+              ? t("finalizingButton")
+              : isFinalizerFunded
+                ? t("finalizeButton")
+                : t("waitingForFinalizerFunds")}
           </Button>
         </div>
       )}

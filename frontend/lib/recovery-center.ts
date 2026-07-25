@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { MOCK_LOCK_TIME_MS } from "@/lib/recovery";
+import { MOCK_LOCK_TIME_MS } from "./recovery";
 
 export type RecoveryAttemptRole = "owner" | "watchTower";
 

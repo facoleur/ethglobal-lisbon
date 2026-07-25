@@ -26,7 +26,7 @@ export const tarRecoveryExecutorAddress: Address | null =
     ? getAddress(configuredTarRecoveryExecutorAddress)
     : null;
 
-const sepoliaRpcUrl =
+export const sepoliaRpcUrl =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL?.trim() ||
   "https://ethereum-sepolia-rpc.publicnode.com";
 
