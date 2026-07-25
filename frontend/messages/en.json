@@ -53,9 +53,15 @@
     },
     "SendDrawer": {
       "title": "Send ETH",
+      "recipientLabel": "Recipient address",
       "recipientPlaceholder": "Recipient address (0x...)",
+      "amountLabel": "Amount in ETH",
       "amountPlaceholder": "Amount (ETH)",
-      "confirmButton": "Confirm"
+      "confirmButton": "Confirm",
+      "sendingButton": "Sending…",
+      "invalidRecipient": "Enter a valid recipient address.",
+      "invalidAmount": "Enter an amount greater than zero.",
+      "success": "ETH sent successfully."
     },
     "ReceiveDrawer": {
       "title": "Receive",
