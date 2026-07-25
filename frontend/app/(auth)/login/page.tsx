@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/lib/store/wallet";
-import { registerPasskey } from "@/lib/web3/kernel";
+import { createKernelSession } from "@/lib/kernel/create-session";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,9 +19,8 @@ export default function LoginPage() {
   async function handleCreateWallet() {
     setIsCreating(true);
     try {
-      const { credentialId, accountAddress } =
-        await registerPasskey("TAR Wallet");
-      setCredential(credentialId, accountAddress);
+      const session = await createKernelSession("register", "TAR Wallet");
+      setCredential(session.authenticatorId, session.account.address);
       router.push("/");
     } catch {
       toast.error(tCommon("error"));

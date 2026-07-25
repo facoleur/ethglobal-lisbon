@@ -3,10 +3,12 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useWalletStore } from "@/lib/store/wallet";
 import {
   createKernelSession,
   type KernelSession,
@@ -26,6 +28,8 @@ type KernelContextValue = {
 
 const KernelContext = createContext<KernelContextValue | null>(null);
 
+const DEFAULT_PASSKEY_NAME = "TAR Wallet";
+
 function normalizeError(error: unknown) {
   return error instanceof Error ? error : new Error("Unexpected wallet error.");
 }
@@ -36,15 +40,46 @@ export function KernelProvider({ children }: { children: ReactNode }) {
   const [pendingMode, setPendingMode] = useState<PasskeyMode | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const isConnecting = useRef(false);
+  const didRestore = useRef(false);
+
+  const credentialId = useWalletStore((s) => s.credentialId);
+  const accountAddress = useWalletStore((s) => s.accountAddress);
+
+  /* auto-restore session from persisted credential */
+  useEffect(() => {
+    if (didRestore.current) return;
+    if (!credentialId || !accountAddress) return;
+
+    didRestore.current = true;
+
+    const restore = async () => {
+      isConnecting.current = true;
+      setStatus("connecting");
+      setPendingMode("login");
+
+      try {
+        const nextSession = await createKernelSession(
+          "login",
+          DEFAULT_PASSKEY_NAME,
+        );
+        setSession(nextSession);
+        setStatus("connected");
+      } catch {
+        setSession(null);
+        setStatus("disconnected");
+      } finally {
+        isConnecting.current = false;
+        setPendingMode(null);
+      }
+    };
+
+    restore();
+  }, [credentialId, accountAddress]);
 
   const connect = async (mode: PasskeyMode, passkeyName: string) => {
     if (isConnecting.current) return;
 
-    const name = passkeyName.trim();
-    if (!name) {
-      setError(new Error("Enter a name for the passkey."));
-      return;
-    }
+    const name = passkeyName.trim() || DEFAULT_PASSKEY_NAME;
 
     isConnecting.current = true;
     setStatus("connecting");

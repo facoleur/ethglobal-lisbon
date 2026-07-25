@@ -16,7 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [credentialId, router]);
 
-  {/* loading / redirect guard */}
+  // loading / redirect guard
   if (credentialId === null) {
     return null;
   }
