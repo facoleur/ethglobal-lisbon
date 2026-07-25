@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { formatEther } from "viem";
 import { Button } from "@/components/ui/button";
 import { SendDrawer } from "@/components/send/send-drawer";
 import { ReceiveDrawer } from "@/components/receive/receive-drawer";
+import { useKernelBalance } from "@/hooks/use-kernel";
 
 export default function HomePage() {
   const t = useTranslations("App.Home");
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
+
+  const { balance } = useKernelBalance();
 
   return (
     <>
@@ -17,7 +21,9 @@ export default function HomePage() {
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground text-sm">{t("balanceLabel")}</p>
-          <p className="text-4xl font-semibold">0.00 ETH</p>
+          <p className="text-4xl font-semibold">
+            {formatEther(balance ?? BigInt(0))} ETH
+          </p>
         </div>
 
         {/* actions */}
