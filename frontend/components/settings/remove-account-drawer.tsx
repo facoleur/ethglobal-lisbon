@@ -2,7 +2,10 @@
 
 import { Drawer } from "vaul";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useDisconnectKernel } from "@/hooks/use-kernel";
+import { useWalletStore } from "@/lib/store/wallet";
 
 type RemoveAccountDrawerProps = {
   open: boolean;
@@ -14,6 +17,15 @@ export function RemoveAccountDrawer({
   onOpenChange,
 }: RemoveAccountDrawerProps) {
   const t = useTranslations("App.Settings.RemoveAccountDrawer");
+  const router = useRouter();
+  const disconnectKernel = useDisconnectKernel();
+  const clearWallet = useWalletStore((state) => state.clear);
+
+  const handleRemove = () => {
+    disconnectKernel();
+    clearWallet();
+    router.replace("/login");
+  };
 
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
@@ -36,6 +48,7 @@ export function RemoveAccountDrawer({
                 variant="destructive"
                 size="lg"
                 className="w-full rounded-xl"
+                onClick={handleRemove}
               >
                 {t("confirmButton")}
               </Button>
