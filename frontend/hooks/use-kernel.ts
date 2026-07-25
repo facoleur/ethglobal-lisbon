@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Address, Hex } from "viem";
 import type { WaitForUserOperationReceiptReturnType } from "viem/account-abstraction";
 import { useKernelContext } from "@/providers/kernel-provider";
-import { publicClient } from "@/kernel/config";
+import { publicClient } from "@/lib/kernel/config";
 
 export type KernelCall = {
   to: Address;

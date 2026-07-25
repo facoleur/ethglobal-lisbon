@@ -10,7 +10,7 @@ import {
   getBrowserWalletConfig,
   kernelVersion,
   publicClient,
-} from "@/kernel/config";
+} from "@/lib/kernel/config";
 
 export type PasskeyMode = "register" | "login";
 

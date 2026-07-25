@@ -11,7 +11,7 @@ import {
   createKernelSession,
   type KernelSession,
   type PasskeyMode,
-} from "@/kernel/create-session";
+} from "@/lib/kernel/create-session";
 
 export type KernelStatus = "disconnected" | "connecting" | "connected";
 
