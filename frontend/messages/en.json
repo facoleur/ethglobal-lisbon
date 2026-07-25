@@ -4,6 +4,7 @@
       "title": "Welcome",
       "subtitle": "Create or recover your wallet.",
       "createWallet": "Create a wallet",
+      "creating": "Setting up your wallet…",
       "recoverWallet": "Recover a wallet"
     },
     "Recovery": {
@@ -42,6 +43,7 @@
     "error": "Something went wrong.",
     "tryAgain": "Try again",
     "notFound": "Page not found",
-    "goHome": "Go home"
+    "goHome": "Go home",
+    "loading": "Loading…"
   }
 }

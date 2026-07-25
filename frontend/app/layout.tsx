@@ -1,7 +1,8 @@
+import { Providers } from "@/components/providers";
 import type { Metadata, Viewport } from "next";
-import { Figtree } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { Figtree } from "next/font/google";
 import "./globals.css";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
@@ -33,7 +34,7 @@ export default async function RootLayout({
     <html lang="en" className={`${figtree.variable} font-sans antialiased`}>
       <body className="h-dvh overflow-hidden bg-background text-foreground">
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>
