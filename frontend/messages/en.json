@@ -109,6 +109,7 @@
       "sendingButton": "Sending…",
       "invalidRecipient": "Enter a valid recipient address.",
       "invalidAmount": "Enter an amount greater than zero.",
+      "sendFailed": "Transaction failed: {message}",
       "success": "ETH sent successfully."
     },
     "ReceiveDrawer": {
