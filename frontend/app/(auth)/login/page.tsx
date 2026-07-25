@@ -21,7 +21,11 @@ export default function LoginPage() {
     setIsCreating(true);
     try {
       const session = await createKernelSession("register", "TAR Wallet");
-      setCredential(session.authenticatorId, session.account.address);
+      setCredential(
+        session.authenticatorId,
+        session.account.address,
+        session.publicKey,
+      );
       router.push("/");
     } catch {
       toast.error(tCommon("error"));
@@ -34,7 +38,11 @@ export default function LoginPage() {
     setIsLoggingIn(true);
     try {
       const session = await createKernelSession("login", "TAR Wallet");
-      setCredential(session.authenticatorId, session.account.address);
+      setCredential(
+        session.authenticatorId,
+        session.account.address,
+        session.publicKey,
+      );
       router.push("/");
     } catch {
       toast.error(tCommon("error"));

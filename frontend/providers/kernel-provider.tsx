@@ -11,6 +11,7 @@ import {
 import { useWalletStore } from "@/lib/store/wallet";
 import {
   createKernelSession,
+  restoreKernelSession,
   type KernelSession,
   type PasskeyMode,
 } from "@/lib/kernel/create-session";
@@ -44,11 +45,12 @@ export function KernelProvider({ children }: { children: ReactNode }) {
 
   const credentialId = useWalletStore((s) => s.credentialId);
   const accountAddress = useWalletStore((s) => s.accountAddress);
+  const publicKey = useWalletStore((s) => s.publicKey);
 
-  /* auto-restore session from persisted credential */
+  /* auto-restore session from persisted credential — sans cérémonie WebAuthn */
   useEffect(() => {
     if (didRestore.current) return;
-    if (!credentialId || !accountAddress) return;
+    if (!credentialId || !accountAddress || !publicKey) return;
 
     didRestore.current = true;
 
@@ -58,9 +60,9 @@ export function KernelProvider({ children }: { children: ReactNode }) {
       setPendingMode("login");
 
       try {
-        const nextSession = await createKernelSession(
-          "login",
-          DEFAULT_PASSKEY_NAME,
+        const nextSession = await restoreKernelSession(
+          credentialId,
+          publicKey as `0x${string}`,
         );
         setSession(nextSession);
         setStatus("connected");
@@ -74,7 +76,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
     };
 
     restore();
-  }, [credentialId, accountAddress]);
+  }, [credentialId, accountAddress, publicKey]);
 
   const connect = async (mode: PasskeyMode, passkeyName: string) => {
     if (isConnecting.current) return;

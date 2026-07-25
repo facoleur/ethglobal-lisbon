@@ -7,17 +7,16 @@ import { useWalletStore } from "@/lib/store/wallet";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { credentialId } = useWalletStore();
+  const { credentialId, hasHydrated } = useWalletStore();
 
-  // Zustand persisted state resolves only after client hydration — useEffect required
   useEffect(() => {
+    if (!hasHydrated) return;
     if (credentialId === null) {
       router.replace("/login");
     }
-  }, [credentialId, router]);
+  }, [credentialId, hasHydrated, router]);
 
-  // loading / redirect guard
-  if (credentialId === null) {
+  if (!hasHydrated || credentialId === null) {
     return null;
   }
 
