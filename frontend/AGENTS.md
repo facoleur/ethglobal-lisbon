@@ -37,6 +37,11 @@ prefer using `type` over `interface` unless really needed
 
 Make sure to respect mobile app design rules. Elements must be big enough
 
+we use vaul for drawers.
+dont use modal, dont use dialogs.
+
+we use motion for animations
+
 Dont add border when not necessary.
 Make every color a variable. I want to be able to change theme really easily in one place.
 
