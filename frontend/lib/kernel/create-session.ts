@@ -72,17 +72,22 @@ export async function createPasskeyCredential(
 export async function createKernelSession(
   mode: PasskeyMode,
   passkeyName: string,
+  accountAddress?: Address,
 ) {
   const { pimlicoUrl } = getBrowserWalletConfig();
   const credential = await createPasskeyCredential(mode, passkeyName);
+  const validatorAddress = accountAddress
+    ? await getDeployedRootValidator(accountAddress)
+    : webAuthnValidatorAddress;
 
-  // Create the counterfactual Kernel account controlled by this passkey.
+  // Recovery reconnects to a deployed Kernel; onboarding derives a new one.
   const account = await toKernelSmartAccount({
     client: publicClient,
     entryPoint,
     version: kernelVersion,
     owners: [credential.owner],
-    validatorAddress: webAuthnValidatorAddress,
+    validatorAddress,
+    ...(accountAddress ? { address: accountAddress } : {}),
   });
 
   const pimlicoClient = createPimlicoClient({

@@ -52,6 +52,8 @@ type RecoveryState = PersistedRecoveryState & {
     lockValue: bigint;
     revealTimestamp: bigint;
     lockTime: bigint;
+    broadcasterAddress: Address;
+    broadcasterPrivateKey: Hex;
   }) => void;
   setRecoverySigner: (params: {
     credentialId: string;
@@ -129,6 +131,8 @@ export const useRecoveryStore = create<RecoveryState>()(
         lockValue,
         revealTimestamp,
         lockTime,
+        broadcasterAddress,
+        broadcasterPrivateKey,
       }) => {
         const committedAt = Number(revealTimestamp) * 1_000;
         set({
@@ -136,8 +140,8 @@ export const useRecoveryStore = create<RecoveryState>()(
           targetAccount,
           lockValue: lockValue.toString(),
           lockTime: Number(lockTime),
-          broadcasterAddress: null,
-          broadcasterPrivateKey: null,
+          broadcasterAddress,
+          broadcasterPrivateKey,
           requiredFunding: null,
           credentialId: null,
           publicKey: null,

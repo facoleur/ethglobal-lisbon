@@ -2,6 +2,7 @@ import { formatEther, parseEther } from "viem";
 
 export const SEPOLIA_CHAIN_ID = 11155111;
 export const BROADCASTER_GAS_BUFFER = parseEther("0.01");
+export const FINALIZER_GAS_BUFFER = parseEther("0.001");
 const MOCK_CHALLENGE_WINDOW_MS = 30_000;
 
 export function buildEip681Uri(
@@ -48,11 +49,6 @@ export function computeProgress(
   if (total <= 0) return 100;
   const elapsed = Math.min(now - committedAt, total);
   return Math.min(100, (elapsed / total) * 100);
-}
-
-// TODO: replace with finalizeRecovery user operation on TimelockRecovery contract
-export async function simulateFinalize(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 1_500));
 }
 
 // TODO: replace with vetoRecovery user operation on TimelockRecovery contract

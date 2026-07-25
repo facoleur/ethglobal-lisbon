@@ -54,11 +54,17 @@
       "readySubtitle": "The challenge window has passed with no veto.",
       "finalizeButton": "Finalize recovery",
       "finalizingButton": "Finalizing…",
+      "finalizerFundingHint": "Send {amount} ETH for finalization gas",
+      "copyFinalizerAddress": "Copy finalizer address",
+      "finalizerAddressCopied": "Finalizer address copied!",
+      "waitingForFinalizerFunds": "Waiting for finalizer funds…",
       "vetoedTitle": "Recovery vetoed",
       "vetoedSubtitle": "The account owner rejected this recovery. Your deposit was confiscated.",
       "retryButton": "Start over",
       "successTitle": "Recovery complete",
       "successSubtitle": "You can now access the recovered wallet.",
+      "loginRecoveredWallet": "Login to recovered wallet",
+      "loggingInRecoveredWallet": "Logging in…",
       "backToHome": "Back to home"
     }
   },

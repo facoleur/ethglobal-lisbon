@@ -31,6 +31,7 @@ import { useRecoveryStore } from "@/lib/store/recovery";
 
 const EXECUTOR_MODULE_TYPE = BigInt(2);
 const REVEALED_STATUS = 1;
+const FINALIZED_STATUS = 3;
 
 function normalizeError(error: unknown) {
   return error instanceof Error
@@ -370,4 +371,61 @@ export function useSubmitTarRecovery() {
   };
 
   return { submit, isPending, error };
+}
+
+export function useFinalizeTarRecovery() {
+  const recovery = useRecoveryStore();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const finalize = async () => {
+    if (!tarRecoveryExecutorAddress) {
+      throw new Error("TAR recovery executor is not configured.");
+    }
+
+    const { targetAccount, broadcasterPrivateKey, setStatus } = recovery;
+    if (!targetAccount || !broadcasterPrivateKey) {
+      throw new Error("Recovery finalizer data is incomplete.");
+    }
+
+    setIsPending(true);
+    setError(null);
+
+    try {
+      const walletClient = createBroadcasterWalletClient(broadcasterPrivateKey);
+      const hash = await walletClient.sendTransaction({
+        to: tarRecoveryExecutorAddress,
+        data: encodeFunctionData({
+          abi: tarRecoveryExecutorAbi,
+          functionName: "finalizeRecovery",
+          args: [targetAccount],
+        }),
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") {
+        throw new Error("Recovery finalization reverted.");
+      }
+
+      const recoveredState = await publicClient.readContract({
+        address: tarRecoveryExecutorAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "recoveries",
+        args: [targetAccount],
+      });
+      if (Number(recoveredState[5]) !== FINALIZED_STATUS) {
+        throw new Error("Recovery was not finalized on-chain.");
+      }
+
+      setStatus("finalized");
+      return receipt.transactionHash;
+    } catch (cause) {
+      const nextError = normalizeError(cause);
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { finalize, isPending, error };
 }

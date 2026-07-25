@@ -49,11 +49,17 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
       preflight.lockValue !== null &&
       preflight.revealTimestamp
     ) {
+      const broadcasterPrivateKey = generatePrivateKey();
+      const broadcasterAddress = privateKeyToAccount(
+        broadcasterPrivateKey,
+      ).address;
       resumeRecovery({
         targetAccount,
         lockValue: preflight.lockValue,
         revealTimestamp: preflight.revealTimestamp,
         lockTime: preflight.lockTime,
+        broadcasterAddress,
+        broadcasterPrivateKey,
       });
     } else {
       if (preflight.lockValue === null) return;
