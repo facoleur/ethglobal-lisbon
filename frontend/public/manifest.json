@@ -4,8 +4,8 @@
   "description": "Your smart wallet",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#f8f8f8",
+  "theme_color": "#f8f8f8",
   "start_url": "/",
   "scope": "/",
   "icons": [

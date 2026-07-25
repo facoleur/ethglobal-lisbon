@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Separator } from "@/components/ui/separator";
 import { SettingsMenuItem } from "@/components/settings/settings-menu-item";
 import { TarDrawer } from "@/components/settings/tar-drawer";
 import { RemoveAccountDrawer } from "@/components/settings/remove-account-drawer";
@@ -14,17 +13,15 @@ export default function SettingsPage() {
 
   return (
     <>
-      <div className="flex flex-col px-6 py-8">
-        <h1 className="text-xl font-semibold mb-6">{t("title")}</h1>
+      <div className="flex flex-col px-4 py-8 gap-6">
+        <h1 className="text-xl font-semibold px-1">{t("title")}</h1>
 
-        <div className="flex flex-col">
+        <div className="overflow-hidden rounded-2xl bg-white divide-y divide-border">
           <SettingsMenuItem
             title={t("tarSettings")}
             subtitle={t("tarSettingsSubtitle")}
             onClick={() => setTarOpen(true)}
           />
-
-          <Separator />
 
           <SettingsMenuItem
             title={t("removeAccount")}

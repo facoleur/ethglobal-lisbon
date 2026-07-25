@@ -119,12 +119,12 @@ export function StepStake() {
           <p className="text-muted-foreground text-sm">{t("step2Subtitle")}</p>
         </div>
 
-        <div className="border-border flex flex-col gap-3 rounded-2xl border p-4">
+        <div className="flex flex-col gap-3 rounded-2xl bg-black/[0.04] p-4">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">
               {t("targetAddressLabel")}
             </span>
-            <span className="font-mono text-sm font-medium">
+            <span className="text-sm font-medium">
               {targetAccount ? truncateAddress(targetAccount) : "—"}
             </span>
           </div>
@@ -132,7 +132,7 @@ export function StepStake() {
             <span className="text-muted-foreground text-sm">
               {t("broadcasterAddressLabel")}
             </span>
-            <span className="font-mono text-sm font-medium">
+            <span className="text-sm font-medium">
               {broadcasterAddress ? truncateAddress(broadcasterAddress) : "—"}
             </span>
           </div>
@@ -203,7 +203,7 @@ export function StepStake() {
       </div>
 
       <div className="mt-auto flex flex-col gap-3 pt-8">
-        {isFunded && !isReadyToCommit && (
+        {isFunded && status === "awaiting_funding" && (
           <Button
             size="lg"
             className="w-full rounded-2xl py-4"
@@ -215,7 +215,7 @@ export function StepStake() {
               : t("createRecoveryPasskey")}
           </Button>
         )}
-        {isFunded && (isReadyToCommit || isSubmittingRecovery) && (
+        {((isFunded && isReadyToCommit) || isSubmittingRecovery) && (
           <Button
             size="lg"
             className="w-full rounded-2xl py-4"

@@ -2,6 +2,7 @@ import { formatEther, parseEther } from "viem";
 
 export const SEPOLIA_CHAIN_ID = 11155111;
 export const BROADCASTER_GAS_BUFFER = parseEther("0.01");
+const MOCK_CHALLENGE_WINDOW_MS = 30_000;
 
 export function buildEip681Uri(
   to: string,
@@ -52,4 +53,21 @@ export function computeProgress(
 // TODO: replace with finalizeRecovery user operation on TimelockRecovery contract
 export async function simulateFinalize(): Promise<void> {
   await new Promise((r) => setTimeout(r, 1_500));
+}
+
+// TODO: replace with vetoRecovery user operation on TimelockRecovery contract
+export async function simulateVeto(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 1_500));
+}
+
+// TODO: replace with getRecovery(connectedAddress) poll on TimelockRecovery contract
+export async function simulateIncomingRecovery(): Promise<{
+  recovererAddress: `0x${string}`;
+  executableAt: number;
+}> {
+  await new Promise((r) => setTimeout(r, 500));
+  return {
+    recovererAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    executableAt: Date.now() + MOCK_CHALLENGE_WINDOW_MS,
+  };
 }

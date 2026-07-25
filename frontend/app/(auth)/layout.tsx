@@ -12,7 +12,7 @@ export default function AuthLayout({
 }) {
   const pathname = usePathname();
   const back = !ROOT_AUTH_PAGES.includes(pathname);
-  const stretch = pathname.startsWith("/recovery");
+  const stretch = true;
 
   return (
     <ScreenLayout back={back} stretch={stretch}>

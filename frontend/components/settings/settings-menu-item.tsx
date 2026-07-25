@@ -18,7 +18,7 @@ export function SettingsMenuItem({
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-between py-4 text-left"
+      className="flex w-full items-center justify-between px-4 py-4 text-left"
     >
       <div className="flex flex-col gap-0.5">
         <span

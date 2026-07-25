@@ -14,6 +14,7 @@
       "step1Subtitle": "Enter the address of the wallet you lost access to.",
       "addressLabel": "Address to recover",
       "addressPlaceholder": "Paste or type the address (0x...)",
+      "scanAddress": "Scan wallet address",
       "continueButton": "Continue",
       "viewRecoveryButton": "View active recovery",
       "checkingAccount": "Checking TAR recovery setup…",
@@ -65,7 +66,10 @@
     "Home": {
       "balanceLabel": "Balance",
       "sendButton": "Send",
-      "receiveButton": "Receive"
+      "receiveButton": "Receive",
+      "swapButton": "Swap",
+      "activityTitle": "Activity",
+      "activityEmpty": "No transactions yet"
     },
     "Settings": {
       "title": "Settings",
@@ -77,7 +81,7 @@
         "title": "TAR Settings",
         "lockValue": "Lock Value",
         "lockValuePlaceholder": "0.1 ETH",
-        "lockValueRecommended": "Recommended",
+        "useRecommended": "Use recommended",
         "lockTime": "Lock Time",
         "lockTimePlaceholder": "7 days",
         "lockTimeRecommended": "Recommended",
@@ -116,6 +120,18 @@
       "title": "Receive",
       "copyButton": "Copy address",
       "copied": "Address copied!"
+    },
+    "VetoDrawer": {
+      "title": "Recovery attempt detected",
+      "subtitle": "Someone is trying to take control of your wallet.",
+      "requesterLabel": "Requested by",
+      "timeRemainingLabel": "Time left to veto",
+      "expiredLabel": "Challenge window expired",
+      "vetoButton": "Veto recovery",
+      "vetoingButton": "Vetoing…",
+      "allowButton": "I initiated this",
+      "successTitle": "Recovery vetoed",
+      "successSubtitle": "The recovery attempt has been rejected."
     }
   },
   "Navigation": {
