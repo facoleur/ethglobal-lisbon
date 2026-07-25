@@ -46,6 +46,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
   const credentialId = useWalletStore((s) => s.credentialId);
   const accountAddress = useWalletStore((s) => s.accountAddress);
   const publicKey = useWalletStore((s) => s.publicKey);
+  const setCredential = useWalletStore((s) => s.setCredential);
 
   /* auto-restore session from persisted credential — sans cérémonie WebAuthn */
   useEffect(() => {
@@ -90,8 +91,14 @@ export function KernelProvider({ children }: { children: ReactNode }) {
 
     try {
       const nextSession = await createKernelSession(mode, name);
+      didRestore.current = true;
       setSession(nextSession);
       setStatus("connected");
+      setCredential(
+        nextSession.authenticatorId,
+        nextSession.account.address,
+        nextSession.publicKey,
+      );
     } catch (cause) {
       setSession(null);
       setStatus("disconnected");

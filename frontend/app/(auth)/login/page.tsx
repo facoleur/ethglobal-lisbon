@@ -1,53 +1,34 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useWalletStore } from "@/lib/store/wallet";
-import { createKernelSession } from "@/lib/kernel/create-session";
+import { useLoginPasskey, useRegisterPasskey } from "@/hooks/use-kernel";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
   const t = useTranslations("Auth.Login");
   const tCommon = useTranslations("Common");
   const router = useRouter();
-  const { setCredential } = useWalletStore();
-  const [isCreating, setIsCreating] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const { register, isPending: isCreating } = useRegisterPasskey();
+  const { login, isPending: isLoggingIn } = useLoginPasskey();
 
   async function handleCreateWallet() {
-    setIsCreating(true);
     try {
-      const session = await createKernelSession("register", "TAR Wallet");
-      setCredential(
-        session.authenticatorId,
-        session.account.address,
-        session.publicKey,
-      );
+      await register("TAR Wallet");
       router.push("/");
     } catch {
       toast.error(tCommon("error"));
-    } finally {
-      setIsCreating(false);
     }
   }
 
   async function handleLogin() {
-    setIsLoggingIn(true);
     try {
-      const session = await createKernelSession("login", "TAR Wallet");
-      setCredential(
-        session.authenticatorId,
-        session.account.address,
-        session.publicKey,
-      );
+      await login("TAR Wallet");
       router.push("/");
     } catch {
       toast.error(tCommon("error"));
-    } finally {
-      setIsLoggingIn(false);
     }
   }
 
