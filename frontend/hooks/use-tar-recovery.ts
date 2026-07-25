@@ -1,6 +1,14 @@
 "use client";
 
-import { encodeFunctionData, parseEther } from "viem";
+import { useState } from "react";
+import {
+  concatHex,
+  encodeFunctionData,
+  parseEther,
+  zeroAddress,
+  type Address,
+} from "viem";
+import { useBytecode, useReadContracts } from "wagmi";
 import {
   useKernelAccount,
   useSendKernelTransaction,
@@ -9,13 +17,156 @@ import {
 import {
   kernelModuleAbi,
   lockTimeToSeconds,
-  tarExecutorInstallData,
+  getTarExecutorInstallData,
   tarRecoveryExecutorAbi,
   type LockTimeUnit,
 } from "@/lib/contracts/tar-recovery";
-import { publicClient, tarRecoveryExecutorAddress } from "@/lib/kernel/config";
+import {
+  publicClient,
+  tarRecoveryExecutorAddress,
+  webAuthnValidatorAddress,
+} from "@/lib/kernel/config";
+import { createBroadcasterWalletClient } from "@/lib/recovery/broadcaster";
+import { useRecoveryStore } from "@/lib/store/recovery";
 
 const EXECUTOR_MODULE_TYPE = BigInt(2);
+const REVEALED_STATUS = 1;
+
+function normalizeError(error: unknown) {
+  return error instanceof Error
+    ? error
+    : new Error("Unexpected recovery error.");
+}
+
+async function waitForCommitMaturity(commitBlock: bigint) {
+  const revealBlock = commitBlock + BigInt(1);
+  while ((await publicClient.getBlockNumber()) < revealBlock) {
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+}
+
+export type TarRecoveryPreflightStatus =
+  | "idle"
+  | "checking"
+  | "ready"
+  | "active"
+  | "contract-unavailable"
+  | "unsupported-account"
+  | "module-missing"
+  | "validator-mismatch"
+  | "config-missing"
+  | "read-error";
+
+export function useTarRecoveryPreflight(accountAddress?: Address) {
+  const enabled =
+    accountAddress !== undefined && tarRecoveryExecutorAddress !== null;
+  const targetAddress = accountAddress ?? zeroAddress;
+  const recoveryAddress = tarRecoveryExecutorAddress ?? zeroAddress;
+
+  const accountCode = useBytecode({
+    address: targetAddress,
+    query: { enabled: accountAddress !== undefined },
+  });
+  const recoveryCode = useBytecode({
+    address: recoveryAddress,
+    query: { enabled: tarRecoveryExecutorAddress !== null },
+  });
+  const reads = useReadContracts({
+    allowFailure: true,
+    contracts: [
+      {
+        address: targetAddress,
+        abi: kernelModuleAbi,
+        functionName: "isModuleInstalled",
+        args: [EXECUTOR_MODULE_TYPE, recoveryAddress, "0x"],
+      },
+      {
+        address: targetAddress,
+        abi: kernelModuleAbi,
+        functionName: "rootValidator",
+      },
+      {
+        address: recoveryAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "configs",
+        args: [targetAddress],
+      },
+      {
+        address: recoveryAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "recoveries",
+        args: [targetAddress],
+      },
+    ],
+    query: { enabled },
+  });
+
+  const moduleResult = reads.data?.[0];
+  const validatorResult = reads.data?.[1];
+  const configResult = reads.data?.[2];
+  const recoveryResult = reads.data?.[3];
+  const lockValue =
+    configResult?.status === "success" ? configResult.result[0] : null;
+  const lockTime =
+    configResult?.status === "success" ? configResult.result[1] : null;
+  const revealTimestamp =
+    recoveryResult?.status === "success" ? recoveryResult.result[4] : null;
+  const recoveryStatus =
+    recoveryResult?.status === "success"
+      ? Number(recoveryResult.result[5])
+      : null;
+  const expectedRootValidator = concatHex([
+    "0x01",
+    webAuthnValidatorAddress,
+  ]).toLowerCase();
+
+  let status: TarRecoveryPreflightStatus = "idle";
+  if (accountAddress && !tarRecoveryExecutorAddress) {
+    status = "contract-unavailable";
+  } else if (
+    enabled &&
+    (accountCode.isPending || recoveryCode.isPending || reads.isPending)
+  ) {
+    status = "checking";
+  } else if (enabled && !recoveryCode.data) {
+    status = "contract-unavailable";
+  } else if (enabled && !accountCode.data) {
+    status = "unsupported-account";
+  } else if (enabled && reads.isError) {
+    status = "read-error";
+  } else if (enabled && moduleResult?.status !== "success") {
+    status = "unsupported-account";
+  } else if (
+    enabled &&
+    moduleResult?.status === "success" &&
+    moduleResult.result !== true
+  ) {
+    status = "module-missing";
+  } else if (
+    enabled &&
+    (validatorResult?.status !== "success" ||
+      validatorResult.result.toLowerCase() !== expectedRootValidator)
+  ) {
+    status = "validator-mismatch";
+  } else if (
+    enabled &&
+    (lockValue === null || lockTime === null || lockTime === BigInt(0))
+  ) {
+    status = "config-missing";
+  } else if (enabled && recoveryStatus === REVEALED_STATUS) {
+    status = "active";
+  } else if (enabled) {
+    status = "ready";
+  }
+
+  return {
+    status,
+    lockValue,
+    lockTime,
+    revealTimestamp,
+    canContinue: status === "ready" || status === "active",
+  };
+}
 
 export function useUpdateRecoveryParams() {
   const transaction = useSendKernelTransaction();
@@ -32,6 +183,9 @@ export function useUpdateRecoveryParams() {
     if (!accountAddress) {
       throw new Error("Connect a Kernel account first.");
     }
+
+    const lockValueWei = parseEther(lockValue.toString());
+    const lockTimeSeconds = lockTimeToSeconds(lockTimeValue, lockTimeUnit);
 
     const accountCode = await publicClient.getCode({ address: accountAddress });
     const isAccountDeployed = accountCode !== undefined && accountCode !== "0x";
@@ -55,23 +209,20 @@ export function useUpdateRecoveryParams() {
           args: [
             EXECUTOR_MODULE_TYPE,
             tarRecoveryExecutorAddress,
-            tarExecutorInstallData,
+            getTarExecutorInstallData(lockValueWei, lockTimeSeconds),
           ],
         }),
       });
+    } else {
+      calls.push({
+        to: tarRecoveryExecutorAddress,
+        data: encodeFunctionData({
+          abi: tarRecoveryExecutorAbi,
+          functionName: "updateRecoveryParams",
+          args: [lockValueWei, lockTimeSeconds],
+        }),
+      });
     }
-
-    calls.push({
-      to: tarRecoveryExecutorAddress,
-      data: encodeFunctionData({
-        abi: tarRecoveryExecutorAbi,
-        functionName: "updateRecoveryParams",
-        args: [
-          parseEther(lockValue.toString()),
-          lockTimeToSeconds(lockTimeValue, lockTimeUnit),
-        ],
-      }),
-    });
 
     return transaction.sendTransaction(calls);
   };
@@ -82,4 +233,141 @@ export function useUpdateRecoveryParams() {
     isPending: transaction.isPending,
     error: transaction.error,
   };
+}
+
+export function useSubmitTarRecovery() {
+  const recovery = useRecoveryStore();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const submit = async () => {
+    if (!tarRecoveryExecutorAddress) {
+      throw new Error("TAR recovery executor is not configured.");
+    }
+
+    const {
+      targetAccount,
+      broadcasterAddress,
+      broadcasterPrivateKey,
+      pubKeyX,
+      pubKeyY,
+      salt,
+      commitment,
+      requestTxHash,
+      commitBlock: storedCommitBlock,
+      revealTxHash,
+      setRequestSubmitted,
+      setCommitConfirmed,
+      setRevealSubmitted,
+      setRevealConfirmed,
+    } = recovery;
+
+    if (
+      !targetAccount ||
+      !broadcasterAddress ||
+      !broadcasterPrivateKey ||
+      !pubKeyX ||
+      !pubKeyY ||
+      !salt ||
+      !commitment
+    ) {
+      throw new Error("Recovery data is incomplete.");
+    }
+
+    setIsPending(true);
+    setError(null);
+
+    try {
+      const walletClient = createBroadcasterWalletClient(broadcasterPrivateKey);
+      let commitBlock = storedCommitBlock ? BigInt(storedCommitBlock) : null;
+
+      if (commitBlock === null) {
+        let hash = requestTxHash;
+        if (!hash) {
+          hash = await walletClient.sendTransaction({
+            to: tarRecoveryExecutorAddress,
+            data: encodeFunctionData({
+              abi: tarRecoveryExecutorAbi,
+              functionName: "requestRecovery",
+              args: [commitment],
+            }),
+          });
+          setRequestSubmitted(hash);
+        }
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== "success") {
+          throw new Error("Recovery request reverted.");
+        }
+        commitBlock = receipt.blockNumber;
+        setCommitConfirmed(commitBlock);
+      }
+
+      await waitForCommitMaturity(commitBlock);
+
+      const pendingCommitBlock = await publicClient.readContract({
+        address: tarRecoveryExecutorAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "pendingCommitments",
+        args: [commitment],
+      });
+      if (pendingCommitBlock === BigInt(0)) {
+        throw new Error("Recovery commitment is no longer pending.");
+      }
+
+      const [lockValue, lockTime] = await publicClient.readContract({
+        address: tarRecoveryExecutorAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "configs",
+        args: [targetAccount],
+      });
+
+      let hash = revealTxHash;
+      if (!hash) {
+        hash = await walletClient.sendTransaction({
+          to: tarRecoveryExecutorAddress,
+          data: encodeFunctionData({
+            abi: tarRecoveryExecutorAbi,
+            functionName: "revealRecovery",
+            args: [
+              targetAccount,
+              broadcasterAddress,
+              BigInt(pubKeyX),
+              BigInt(pubKeyY),
+              salt,
+            ],
+          }),
+          value: lockValue,
+        });
+        setRevealSubmitted(hash);
+      }
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") {
+        throw new Error("Recovery reveal reverted.");
+      }
+
+      const recoveredState = await publicClient.readContract({
+        address: tarRecoveryExecutorAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "recoveries",
+        args: [targetAccount],
+      });
+      const revealTimestamp = recoveredState[4];
+      setRevealConfirmed({
+        committedAt: Number(revealTimestamp) * 1_000,
+        executableAt: Number(revealTimestamp + lockTime) * 1_000,
+      });
+
+      return receipt.transactionHash;
+    } catch (cause) {
+      const nextError = normalizeError(cause);
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { submit, isPending, error };
 }

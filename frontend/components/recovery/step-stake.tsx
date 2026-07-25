@@ -2,37 +2,113 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useBalance } from "wagmi";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "@/components/receive/qr-code";
+import { useSubmitTarRecovery } from "@/hooks/use-tar-recovery";
+import { createPasskeyCredential } from "@/lib/kernel/create-session";
+import {
+  computeRecoveryCommitment,
+  generateRecoverySalt,
+} from "@/lib/recovery/commitment";
 import { useRecoveryStore } from "@/lib/store/recovery";
 import {
+  BROADCASTER_GAS_BUFFER,
   buildEip681Uri,
-  MOCK_LOCK_VALUE_ETH,
-  MOCK_LOCK_TIME_LABEL,
-  MOCK_CHALLENGE_WINDOW_MS,
-  RECOVERY_CONTRACT_ADDRESS,
+  formatDuration,
+  formatEth,
   SEPOLIA_CHAIN_ID,
   truncateAddress,
-  simulateStake,
 } from "@/lib/recovery";
 
 export function StepStake() {
   const t = useTranslations("Auth.Recovery");
-  const { targetAccount, setCommitted, clear } = useRecoveryStore();
-  const [isPending, setIsPending] = useState(false);
+  const tCommon = useTranslations("Common");
+  const {
+    status,
+    targetAccount,
+    lockValue,
+    lockTime,
+    broadcasterAddress,
+    requiredFunding,
+    setRecoverySigner,
+    clear,
+  } = useRecoveryStore();
+  const [isCreatingPasskey, setIsCreatingPasskey] = useState(false);
+  const recoverySubmission = useSubmitTarRecovery();
+  const fundingAmount = BigInt(requiredFunding ?? "0");
+  const broadcasterBalance = useBalance({
+    address: broadcasterAddress ?? undefined,
+    query: {
+      enabled: broadcasterAddress !== null,
+      refetchInterval: 3_000,
+    },
+  });
+  const isFunded =
+    broadcasterBalance.data !== undefined &&
+    broadcasterBalance.data.value >= fundingAmount;
+  const isReadyToCommit = status === "ready_to_commit";
+  const isSubmittingRecovery =
+    status === "requesting" ||
+    status === "waiting_reveal" ||
+    status === "revealing";
 
   const eip681Uri = buildEip681Uri(
-    RECOVERY_CONTRACT_ADDRESS,
+    broadcasterAddress ?? "0x0000000000000000000000000000000000000000",
     SEPOLIA_CHAIN_ID,
-    MOCK_LOCK_VALUE_ETH,
+    fundingAmount,
   );
 
-  async function handleStake() {
-    setIsPending(true);
-    // TODO: commitRecovery + revealRecovery — executableAt comes from getRecovery(account).executableAt after reveal
-    await simulateStake();
-    setCommitted(Date.now() + MOCK_CHALLENGE_WINDOW_MS);
-    setIsPending(false);
+  async function handleCreatePasskey() {
+    if (!targetAccount || !broadcasterAddress || !isFunded) return;
+
+    setIsCreatingPasskey(true);
+    try {
+      const credential = await createPasskeyCredential(
+        "register",
+        "TAR Recovery",
+      );
+      const salt = generateRecoverySalt();
+      const commitment = computeRecoveryCommitment({
+        addressToRecover: targetAccount,
+        broadcasterAddress,
+        pubKeyX: credential.pubKeyX,
+        pubKeyY: credential.pubKeyY,
+        salt,
+      });
+      setRecoverySigner({
+        credentialId: credential.authenticatorId,
+        publicKey: credential.publicKey,
+        pubKeyX: credential.pubKeyX,
+        pubKeyY: credential.pubKeyY,
+        salt,
+        commitment,
+      });
+    } catch {
+      toast.error(tCommon("error"));
+    } finally {
+      setIsCreatingPasskey(false);
+    }
+  }
+
+  async function handleCopyBroadcasterAddress() {
+    if (!broadcasterAddress) return;
+
+    try {
+      await navigator.clipboard.writeText(broadcasterAddress);
+      toast.success(t("broadcasterAddressCopied"));
+    } catch {
+      toast.error(tCommon("error"));
+    }
+  }
+
+  async function handleStartRecovery() {
+    try {
+      await recoverySubmission.submit();
+    } catch {
+      toast.error(tCommon("error"));
+    }
   }
 
   return (
@@ -45,9 +121,19 @@ export function StepStake() {
 
         <div className="border-border flex flex-col gap-3 rounded-2xl border p-4">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Address</span>
+            <span className="text-muted-foreground text-sm">
+              {t("targetAddressLabel")}
+            </span>
             <span className="font-mono text-sm font-medium">
               {targetAccount ? truncateAddress(targetAccount) : "—"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              {t("broadcasterAddressLabel")}
+            </span>
+            <span className="font-mono text-sm font-medium">
+              {broadcasterAddress ? truncateAddress(broadcasterAddress) : "—"}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -55,14 +141,32 @@ export function StepStake() {
               {t("depositLabel")}
             </span>
             <span className="text-sm font-medium">
-              {MOCK_LOCK_VALUE_ETH} ETH
+              {formatEth(BigInt(lockValue ?? "0"))} ETH
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              {t("gasBufferLabel")}
+            </span>
+            <span className="text-sm font-medium">
+              {formatEth(BROADCASTER_GAS_BUFFER)} ETH
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              {t("totalLabel")}
+            </span>
+            <span className="text-sm font-semibold">
+              {formatEth(fundingAmount)} ETH
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">
               {t("lockTimeLabel")}
             </span>
-            <span className="text-sm font-medium">{MOCK_LOCK_TIME_LABEL}</span>
+            <span className="text-sm font-medium">
+              {formatDuration(lockTime ?? 0)}
+            </span>
           </div>
         </div>
 
@@ -71,24 +175,64 @@ export function StepStake() {
           <p className="text-muted-foreground text-center text-xs">
             {t("qrCaption")}
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2 w-full rounded-xl"
+            onClick={handleCopyBroadcasterAddress}
+            disabled={!broadcasterAddress}
+          >
+            {t("copyBroadcasterAddress")}
+          </Button>
         </div>
+        <p
+          className={
+            isFunded
+              ? "text-center text-sm font-medium text-foreground"
+              : "text-muted-foreground text-center text-sm"
+          }
+        >
+          {isSubmittingRecovery
+            ? t("submittingRecovery")
+            : isReadyToCommit
+              ? t("passkeyReady")
+              : isFunded
+                ? t("fundsReceived")
+                : t("waitingForFunds")}
+        </p>
       </div>
 
       <div className="mt-auto flex flex-col gap-3 pt-8">
-        <Button
-          size="lg"
-          className="w-full rounded-2xl py-4"
-          onClick={handleStake}
-          disabled={isPending}
-        >
-          {isPending ? t("stakingButton") : t("stakeButton")}
-        </Button>
+        {isFunded && !isReadyToCommit && (
+          <Button
+            size="lg"
+            className="w-full rounded-2xl py-4"
+            onClick={handleCreatePasskey}
+            disabled={isCreatingPasskey}
+          >
+            {isCreatingPasskey
+              ? t("creatingRecoveryPasskey")
+              : t("createRecoveryPasskey")}
+          </Button>
+        )}
+        {isFunded && (isReadyToCommit || isSubmittingRecovery) && (
+          <Button
+            size="lg"
+            className="w-full rounded-2xl py-4"
+            onClick={handleStartRecovery}
+            disabled={recoverySubmission.isPending}
+          >
+            {recoverySubmission.isPending
+              ? t("submittingRecovery")
+              : t("startRecoveryButton")}
+          </Button>
+        )}
         <Button
           size="lg"
           variant="ghost"
           className="w-full rounded-2xl py-4"
           onClick={clear}
-          disabled={isPending}
+          disabled={isCreatingPasskey || recoverySubmission.isPending}
         >
           {t("cancelButton")}
         </Button>

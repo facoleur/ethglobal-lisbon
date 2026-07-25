@@ -4,9 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer } from "vaul";
 import { useTranslations } from "next-intl";
-import { isAddress } from "viem";
+import { getAddress, isAddress } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useTarRecoveryPreflight } from "@/hooks/use-tar-recovery";
+import { BROADCASTER_GAS_BUFFER } from "@/lib/recovery";
 import { useRecoveryStore } from "@/lib/store/recovery";
 
 type RecoveryDrawerProps = {
@@ -17,16 +20,45 @@ type RecoveryDrawerProps = {
 export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
   const t = useTranslations("Auth.Recovery");
   const router = useRouter();
-  const { setTargetAccount, setStatus } = useRecoveryStore();
+  const beginFunding = useRecoveryStore((state) => state.beginFunding);
+  const resumeRecovery = useRecoveryStore((state) => state.resumeRecovery);
   const [address, setAddress] = useState("");
 
   const touched = address.length > 0;
   const valid = isAddress(address);
+  const targetAccount = valid ? getAddress(address) : undefined;
+  const preflight = useTarRecoveryPreflight(targetAccount);
 
   function handleContinue() {
-    if (!valid) return;
-    setTargetAccount(address);
-    setStatus("staking");
+    if (!targetAccount || !preflight.canContinue || !preflight.lockTime) return;
+
+    if (
+      preflight.status === "active" &&
+      preflight.lockValue !== null &&
+      preflight.revealTimestamp
+    ) {
+      resumeRecovery({
+        targetAccount,
+        lockValue: preflight.lockValue,
+        revealTimestamp: preflight.revealTimestamp,
+        lockTime: preflight.lockTime,
+      });
+    } else {
+      if (preflight.lockValue === null) return;
+      const broadcasterPrivateKey = generatePrivateKey();
+      const broadcasterAddress = privateKeyToAccount(
+        broadcasterPrivateKey,
+      ).address;
+      beginFunding({
+        targetAccount,
+        lockValue: preflight.lockValue,
+        lockTime: preflight.lockTime,
+        broadcasterAddress,
+        broadcasterPrivateKey,
+        requiredFunding: preflight.lockValue + BROADCASTER_GAS_BUFFER,
+      });
+    }
+
     onOpenChange(false);
     router.push("/recovery");
   }
@@ -55,15 +87,31 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
                 placeholder={t("addressPlaceholder")}
                 aria-invalid={touched && !valid}
               />
+              {valid && preflight.status === "checking" && (
+                <p className="text-muted-foreground text-xs">
+                  {t("checkingAccount")}
+                </p>
+              )}
+              {valid &&
+                preflight.status !== "idle" &&
+                preflight.status !== "checking" &&
+                preflight.status !== "ready" &&
+                preflight.status !== "active" && (
+                  <p className="text-destructive text-xs">
+                    {t(`preflight.${preflight.status}`)}
+                  </p>
+                )}
             </div>
 
             <Button
               size="lg"
               className="w-full rounded-2xl py-4"
               onClick={handleContinue}
-              disabled={!valid}
+              disabled={!valid || !preflight.canContinue}
             >
-              {t("continueButton")}
+              {preflight.status === "active"
+                ? t("viewRecoveryButton")
+                : t("continueButton")}
             </Button>
           </div>
         </Drawer.Content>

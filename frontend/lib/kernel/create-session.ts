@@ -2,7 +2,15 @@ import { toWebAuthnKey, WebAuthnMode } from "@zerodev/webauthn-key";
 import { createSmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { concatHex, http, toHex, type Address, type Hex } from "viem";
+import {
+  concatHex,
+  getAddress,
+  http,
+  parseAbi,
+  toHex,
+  type Address,
+  type Hex,
+} from "viem";
 import { toWebAuthnAccount } from "viem/account-abstraction";
 import {
   chain,
@@ -15,11 +23,28 @@ import {
 
 export type PasskeyMode = "register" | "login";
 
-export async function createKernelSession(
+const kernelRootValidatorAbi = parseAbi([
+  "function rootValidator() view returns (bytes21)",
+]);
+
+async function getDeployedRootValidator(accountAddress: Address) {
+  const code = await publicClient.getCode({ address: accountAddress });
+  if (!code || code === "0x") return webAuthnValidatorAddress;
+
+  const rootValidator = await publicClient.readContract({
+    address: accountAddress,
+    abi: kernelRootValidatorAbi,
+    functionName: "rootValidator",
+  });
+
+  return getAddress(`0x${rootValidator.slice(4)}`);
+}
+
+export async function createPasskeyCredential(
   mode: PasskeyMode,
   passkeyName: string,
 ) {
-  const { passkeyServerUrl, pimlicoUrl, rpId } = getBrowserWalletConfig();
+  const { passkeyServerUrl, rpId } = getBrowserWalletConfig();
   const webAuthnKey = await toWebAuthnKey({
     passkeyName,
     passkeyServerUrl,
@@ -27,23 +52,36 @@ export async function createKernelSession(
     mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login,
     passkeyServerHeaders: {},
   });
-
-  const publicKey = concatHex([
-    toHex(webAuthnKey.pubX, { size: 32 }),
-    toHex(webAuthnKey.pubY, { size: 32 }),
-  ]);
-
+  const pubKeyX = toHex(webAuthnKey.pubX, { size: 32 });
+  const pubKeyY = toHex(webAuthnKey.pubY, { size: 32 });
+  const publicKey = concatHex([pubKeyX, pubKeyY]);
   const owner = toWebAuthnAccount({
     credential: { id: webAuthnKey.authenticatorId, publicKey },
     rpId,
   });
+
+  return {
+    owner,
+    authenticatorId: webAuthnKey.authenticatorId,
+    publicKey,
+    pubKeyX,
+    pubKeyY,
+  };
+}
+
+export async function createKernelSession(
+  mode: PasskeyMode,
+  passkeyName: string,
+) {
+  const { pimlicoUrl } = getBrowserWalletConfig();
+  const credential = await createPasskeyCredential(mode, passkeyName);
 
   // Create the counterfactual Kernel account controlled by this passkey.
   const account = await toKernelSmartAccount({
     client: publicClient,
     entryPoint,
     version: kernelVersion,
-    owners: [owner],
+    owners: [credential.owner],
     validatorAddress: webAuthnValidatorAddress,
   });
 
@@ -68,8 +106,8 @@ export async function createKernelSession(
   return {
     account,
     client,
-    authenticatorId: webAuthnKey.authenticatorId,
-    publicKey,
+    authenticatorId: credential.authenticatorId,
+    publicKey: credential.publicKey,
   };
 }
 
@@ -79,6 +117,7 @@ export async function restoreKernelSession(
   accountAddress: Address,
 ) {
   const { pimlicoUrl, rpId } = getBrowserWalletConfig();
+  const validatorAddress = await getDeployedRootValidator(accountAddress);
 
   const owner = toWebAuthnAccount({
     credential: { id: credentialId, publicKey },
@@ -91,7 +130,7 @@ export async function restoreKernelSession(
     entryPoint,
     version: kernelVersion,
     owners: [owner],
-    validatorAddress: webAuthnValidatorAddress,
+    validatorAddress,
     address: accountAddress,
   });
 
