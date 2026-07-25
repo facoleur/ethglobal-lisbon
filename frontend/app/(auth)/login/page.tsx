@@ -13,16 +13,15 @@ export default function LoginPage() {
   const t = useTranslations("Auth.Login");
   const tCommon = useTranslations("Common");
   const router = useRouter();
-  const { setCredential, setKernelClient } = useWalletStore();
+  const { setCredential } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
 
   async function handleCreateWallet() {
     setIsCreating(true);
     try {
-      const { credentialId, accountAddress, kernelClient } =
+      const { credentialId, accountAddress } =
         await registerPasskey("TAR Wallet");
       setCredential(credentialId, accountAddress);
-      setKernelClient(kernelClient);
       router.push("/");
     } catch {
       toast.error(tCommon("error"));
@@ -50,6 +49,7 @@ export default function LoginPage() {
         size="lg"
         className="w-full rounded-2xl py-4"
         render={<Link href="/recovery" />}
+        nativeButton={false}
       >
         {t("recoverWallet")}
       </Button>

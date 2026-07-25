@@ -1,8 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import type { KernelAccountClient } from "@zerodev/sdk";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 type PersistedWalletState = {
   credentialId: string | null;
@@ -10,9 +9,7 @@ type PersistedWalletState = {
 };
 
 type WalletState = PersistedWalletState & {
-  kernelClient: KernelAccountClient | null;
   setCredential: (credentialId: string, accountAddress: string) => void;
-  setKernelClient: (client: KernelAccountClient) => void;
   clear: () => void;
 };
 
@@ -21,12 +18,9 @@ export const useWalletStore = create<WalletState>()(
     (set) => ({
       credentialId: null,
       accountAddress: null,
-      kernelClient: null,
       setCredential: (credentialId, accountAddress) =>
         set({ credentialId, accountAddress }),
-      setKernelClient: (kernelClient) => set({ kernelClient }),
-      clear: () =>
-        set({ credentialId: null, accountAddress: null, kernelClient: null }),
+      clear: () => set({ credentialId: null, accountAddress: null }),
     }),
     {
       name: "tar-wallet",
