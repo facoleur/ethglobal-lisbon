@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { ScreenLayout } from "@/components/navigation/screen-layout";
+import { usePathname } from "next/navigation";
 
 const ROOT_AUTH_PAGES = ["/login"];
 
