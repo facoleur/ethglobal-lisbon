@@ -57,13 +57,10 @@ interface ITARRecovery is IExecutor {
     /// @dev Owner of `msg.sender`'s own account only — no separate `account` parameter.
     function updateRecoveryParams(uint256 lockValue, uint256 lockTime) external;
 
-    /// @dev Anyone, non-payable. Records the commitment's block number; no uniqueness check (spam
-    /// is an accepted POC limit — see `context-full-implementation.md` §7). `revealRecovery`
-    /// enforces a minimum age (`MIN_COMMIT_REVEAL_BLOCKS`) before this commitment is revealable,
-    /// so it cannot be committed and revealed within the same block — otherwise an attacker
-    /// watching the mempool for a pending `revealRecovery` could react by committing and
-    /// revealing their own malicious attempt in that same block, stealing the
-    /// `RecoveryAlreadyActive` slot before the legitimate reveal lands.
+    /// @dev Anyone, non-payable. Records the commitment's block number on the first request;
+    /// duplicate requests are no-ops and cannot reset its maturity window. Spam with distinct
+    /// commitments is an accepted POC limit. `revealRecovery` enforces a minimum age
+    /// (`MIN_COMMIT_REVEAL_BLOCKS`) before this commitment is revealable.
     function requestRecovery(bytes32 commitment) external;
 
     /// @dev Must be called by `broadcasterAddress` itself, at least `MIN_COMMIT_REVEAL_BLOCKS`

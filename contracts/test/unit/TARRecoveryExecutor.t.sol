@@ -243,6 +243,17 @@ contract TARRecoveryExecutorTest is Test {
         assertEq(uint8(status), uint8(TARRecoveryExecutor.RecoveryStatus.Revealed));
     }
 
+    function test_requestRecovery_duplicateDoesNotResetCommitBlock() external {
+        bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, bytes32(uint256(1)));
+        executor.requestRecovery(commitment);
+        uint256 initialCommitBlock = executor.pendingCommitments(commitment);
+
+        vm.roll(block.number + 5);
+        executor.requestRecovery(commitment);
+
+        assertEq(executor.pendingCommitments(commitment), initialCommitBlock);
+    }
+
     function test_revealRecovery_targetNotInitialized_reverts() external {
         address uninitializedAccount = address(0xDEAD);
         bytes32 salt = bytes32(uint256(1));

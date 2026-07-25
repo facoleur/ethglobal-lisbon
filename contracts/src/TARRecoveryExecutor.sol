@@ -106,11 +106,11 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
         emit RecoveryParamsUpdated(msg.sender, lockValue, lockTime);
     }
 
-    /// @dev No uniqueness check — a commitment already pending simply has its block number
-    /// refreshed (no-op beyond resetting the `MIN_COMMIT_REVEAL_BLOCKS` clock). Unbounded spam is
-    /// an accepted POC limit (`context-full-implementation.md` §7): this is entirely gas-only, no
-    /// value is ever at stake at this step.
+    /// @dev The first request fixes the commitment block. Duplicate requests are no-ops so an
+    /// observer cannot keep resetting the maturity window and indefinitely prevent the reveal.
+    /// Unbounded spam with distinct commitments remains an accepted POC limit.
     function requestRecovery(bytes32 commitment) external {
+        if (pendingCommitments[commitment] != 0) return;
         pendingCommitments[commitment] = block.number;
         emit RecoveryRequested(commitment);
     }
