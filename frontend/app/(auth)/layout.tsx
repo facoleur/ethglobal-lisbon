@@ -5,13 +5,6 @@ import { usePathname } from "next/navigation";
 
 const ROOT_AUTH_PAGES = ["/login"];
 
-"use client";
-
-import { usePathname } from "next/navigation";
-import { ScreenLayout } from "@/components/navigation/screen-layout";
-
-const ROOT_AUTH_PAGES = ["/login"];
-
 export default function AuthLayout({
   children,
 }: {

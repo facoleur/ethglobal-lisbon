@@ -30,12 +30,12 @@ function isEyeCell(row: number, col: number, size: number): boolean {
   return false;
 }
 
-function isInnerEyeCell(row: number, col: number, size: number): boolean {
-  if (row >= 2 && row <= 4 && col >= 2 && col <= 4) return true;
-  if (row >= 2 && row <= 4 && col >= size - 5 && col <= size - 3) return true;
-  if (row >= size - 5 && row <= size - 3 && col >= 2 && col <= 4) return true;
-  return false;
-}
+// function isInnerEyeCell(row: number, col: number, size: number): boolean {
+//   if (row >= 2 && row <= 4 && col >= 2 && col <= 4) return true;
+//   if (row >= 2 && row <= 4 && col >= size - 5 && col <= size - 3) return true;
+//   if (row >= size - 5 && row <= size - 3 && col >= 2 && col <= 4) return true;
+//   return false;
+// }
 
 function circleToPath(cx: number, cy: number, r: number): string {
   return `M${cx - r},${cy}a${r},${r} 0 1,0 ${r * 2},0a${r},${r} 0 1,0 -${r * 2},0`;
@@ -99,9 +99,7 @@ export function generateQRCodeSvgContent(
   }
 
   if (circlePathParts.length > 0) {
-    elements.push(
-      `<path d="${circlePathParts.join("")}" fill="${color}"/>`,
-    );
+    elements.push(`<path d="${circlePathParts.join("")}" fill="${color}"/>`);
   }
 
   const eyePositions = [
@@ -138,7 +136,13 @@ export function generateQRCodeSvgContent(
     const innerY = (eye.row + 2) * cellSize;
     const innerSize = 3 * cellSize;
     innerSquarePaths.push(
-      roundedRectToPath(innerX, innerY, innerSize, innerSize, innerEyeBorderRadius),
+      roundedRectToPath(
+        innerX,
+        innerY,
+        innerSize,
+        innerSize,
+        innerEyeBorderRadius,
+      ),
     );
   }
 

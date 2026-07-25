@@ -32,5 +32,7 @@ export function QrCode({ value, size = 200 }: QrCodeProps) {
     };
   }, [value, size]);
 
-  return <div ref={containerRef} className="flex items-center justify-center" />;
+  return (
+    <div ref={containerRef} className="flex items-center justify-center" />
+  );
 }
