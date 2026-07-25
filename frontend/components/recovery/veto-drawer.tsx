@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { ProgressTrack, ProgressIndicator } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progress";
 import { useVetoStore } from "@/lib/store/veto";
 import { formatCountdown, truncateAddress, simulateVeto } from "@/lib/recovery";
 import { haptic } from "@/lib/haptics";
@@ -104,12 +104,12 @@ export function VetoDrawer({ open }: VetoDrawerProps) {
               )}
             </div>
 
-            <ProgressTrack className="h-1.5 bg-black/[0.08]">
-              <ProgressIndicator
-                style={{ width: `${progressPct}%` }}
-                className="bg-foreground transition-[width] duration-1000 ease-linear"
-              />
-            </ProgressTrack>
+            <Progress
+              value={progressPct}
+              className="gap-0"
+              trackClassName="h-1.5 bg-black/[0.08]"
+              indicatorClassName="bg-foreground duration-1000 ease-linear"
+            />
           </div>
 
           <div className="flex flex-col gap-3">
