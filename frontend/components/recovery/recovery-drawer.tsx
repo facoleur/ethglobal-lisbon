@@ -7,11 +7,9 @@ import { isAddress } from "viem";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { QrScanner } from "@/components/ui/qr-scanner";
-import { StepStake } from "@/components/recovery/step-stake";
-import { StepWaiting } from "@/components/recovery/step-waiting";
 import { useRecoveryStore } from "@/lib/store/recovery";
+import { useRouter } from "next/navigation";
 
 type RecoveryDrawerProps = {
   open: boolean;
@@ -20,9 +18,9 @@ type RecoveryDrawerProps = {
 
 export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
   const t = useTranslations("Auth.Recovery");
-  const { setTargetAccount, setStatus, status } = useRecoveryStore();
+  const router = useRouter();
+  const { setTargetAccount, setStatus } = useRecoveryStore();
   const [address, setAddress] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const touched = address.length > 0;
@@ -33,16 +31,12 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
     setTargetAccount(address);
     setStatus("staking");
     onOpenChange(false);
-    setSheetOpen(true);
+    router.push("/recover");
   }
 
   function handleBottomSheetChange(next: boolean) {
     if (!next) setAddress("");
     onOpenChange(next);
-  }
-
-  function handleSheetClose() {
-    setSheetOpen(false);
   }
 
   return (
@@ -80,20 +74,6 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
         >
           {t("continueButton")}
         </Button>
-      </BottomSheet>
-
-      <FullscreenSheet
-        open={sheetOpen && status === "staking"}
-        onOpenChange={(v) => !v && handleSheetClose()}
-      >
-        <StepStake />
-      </FullscreenSheet>
-
-      <BottomSheet
-        open={sheetOpen && status !== "staking" && status !== "idle"}
-        onOpenChange={(v) => !v && handleSheetClose()}
-      >
-        <StepWaiting />
       </BottomSheet>
 
       {scannerOpen && (

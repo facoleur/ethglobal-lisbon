@@ -26,7 +26,7 @@ export function LockTimePicker({
   onValueChange,
   onUnitChange,
 }: LockTimePickerProps) {
-  const t = useTranslations("App.Settings.TarDrawer");
+  const t = useTranslations("App.Recovery.TarDrawer");
   const unitOptions: WheelPickerOption<LockTimeUnit>[] = [
     { label: t("days"), value: "days" },
     { label: t("weeks"), value: "weeks" },

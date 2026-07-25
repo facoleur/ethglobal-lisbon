@@ -8,7 +8,7 @@ export const MOCK_LOCK_VALUE_ETH = "0.001";
 export const MOCK_LOCK_TIME_LABEL = "30 seconds";
 
 // TODO: replace with recoveryDelay() read from TimelockRecovery contract (in ms, for local countdown seed)
-export const MOCK_CHALLENGE_WINDOW_MS = 30_000;
+export const MOCK_LOCK_TIME_MS = 30_000;
 
 export const SEPOLIA_CHAIN_ID = 11155111;
 
@@ -55,27 +55,10 @@ export function computeProgress(
 // executableAt comes from getRecovery(account).executableAt after reveal
 export async function simulateStake(): Promise<{ executableAt: number }> {
   await new Promise((r) => setTimeout(r, 2_000));
-  return { executableAt: Date.now() + MOCK_CHALLENGE_WINDOW_MS };
+  return { executableAt: Date.now() + MOCK_LOCK_TIME_MS };
 }
 
 // TODO: replace with finalizeRecovery user operation on TimelockRecovery contract
 export async function simulateFinalize(): Promise<void> {
   await new Promise((r) => setTimeout(r, 1_500));
-}
-
-// TODO: replace with vetoRecovery user operation on TimelockRecovery contract
-export async function simulateVeto(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 1_500));
-}
-
-// TODO: replace with getRecovery(connectedAddress) poll on TimelockRecovery contract
-export async function simulateIncomingRecovery(): Promise<{
-  recovererAddress: `0x${string}`;
-  executableAt: number;
-}> {
-  await new Promise((r) => setTimeout(r, 500));
-  return {
-    recovererAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-    executableAt: Date.now() + MOCK_CHALLENGE_WINDOW_MS,
-  };
 }

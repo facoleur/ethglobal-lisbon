@@ -3,7 +3,10 @@
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { useDisconnectKernel } from "@/hooks/use-kernel";
+import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
+import { useRecoveryStore } from "@/lib/store/recovery";
 import { useWalletStore } from "@/lib/store/wallet";
+import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
@@ -16,13 +19,19 @@ export function RemoveAccountDrawer({
   open,
   onOpenChange,
 }: RemoveAccountDrawerProps) {
-  const t = useTranslations("App.Settings.RemoveAccountDrawer");
+  const t = useTranslations("App.Recovery.RemoveAccountDrawer");
   const router = useRouter();
   const disconnectKernel = useDisconnectKernel();
   const clearWallet = useWalletStore((state) => state.clear);
+  const clearRecovery = useRecoveryStore((state) => state.clear);
+  const clearRecoveryCenter = useRecoveryCenterStore((state) => state.clear);
+  const clearWatchTowers = useWatchTowerStore((state) => state.clear);
 
   const handleRemove = () => {
     disconnectKernel();
+    clearRecovery();
+    clearRecoveryCenter();
+    clearWatchTowers();
     clearWallet();
     router.replace("/login");
   };

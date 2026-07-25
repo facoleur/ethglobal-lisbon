@@ -4,6 +4,7 @@ import { RecoveryDrawer } from "@/components/recovery/recovery-drawer";
 import { Button } from "@/components/ui/button";
 import { useLoginPasskey, useRegisterPasskey } from "@/hooks/use-kernel";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -37,12 +38,22 @@ export default function LoginPage() {
   return (
     <>
       <div className="flex flex-1 flex-col">
-        <div className="flex flex-col gap-1">
+        <div className="flex justify-start mb-6">
+          <Image
+            src="/chateau_logo_brand.svg"
+            alt="Chateau"
+            width={160}
+            height={27}
+            priority
+          />
+        </div>
+
+        <div className="flex flex-1 flex-col  justify-end gap-1 mb-6">
           <h1 className="text-2xl font-semibold">{t("title")}</h1>
           <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
         </div>
 
-        <div className="mt-auto flex flex-col gap-1">
+        <div className="mt-auto flex flex-col gap-3">
           <Button
             size="lg"
             className="w-full"
