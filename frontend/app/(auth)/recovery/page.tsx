@@ -7,11 +7,13 @@ export default function RecoveryPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
       </div>
 
+      {/* address input */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">{t("addressLabel")}</label>
         <input
@@ -33,6 +35,7 @@ export default function RecoveryPage() {
         </p>
       </div>
 
+      {/* instructions */}
       <div className="border-border rounded-2xl border p-4">
         <p className="mb-2 text-sm font-medium">{t("instructionsTitle")}</p>
         <ol className="text-muted-foreground flex flex-col gap-1.5 text-sm">

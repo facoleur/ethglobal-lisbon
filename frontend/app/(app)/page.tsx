@@ -11,11 +11,14 @@ export default function HomePage() {
 
   return (
     <>
+      {/* balance section */}
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground text-sm">{t("balanceLabel")}</p>
           <p className="text-4xl font-semibold">0.00 ETH</p>
         </div>
+
+        {/* send button */}
         <Button
           size="lg"
           className="w-full rounded-2xl py-4"
@@ -24,6 +27,8 @@ export default function HomePage() {
           {t("sendButton")}
         </Button>
       </div>
+
+      {/* send drawer */}
       <SendDrawer open={sendOpen} onOpenChange={setSendOpen} />
     </>
   );

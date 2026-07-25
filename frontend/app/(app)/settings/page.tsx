@@ -7,6 +7,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* header */}
       <h1 className="text-xl font-semibold">{t("title")}</h1>
     </div>
   );

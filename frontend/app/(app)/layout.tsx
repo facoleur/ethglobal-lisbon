@@ -16,15 +16,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [credentialId, router]);
 
+  {/* loading / redirect guard */}
   if (credentialId === null) {
     return null;
   }
 
   return (
     <div className="flex h-full flex-col">
+      {/* main content */}
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-sm px-6 py-8">{children}</div>
       </main>
+
+      {/* bottom navigation */}
       <BottomNav />
     </div>
   );

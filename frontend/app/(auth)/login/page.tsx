@@ -32,10 +32,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* header */}
       <div className="mb-4 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
       </div>
+
+      {/* create wallet button */}
       <Button
         size="lg"
         className="w-full rounded-2xl py-4"
@@ -44,6 +47,8 @@ export default function LoginPage() {
       >
         {isCreating ? t("creating") : t("createWallet")}
       </Button>
+
+      {/* recover wallet button */}
       <Button
         variant="outline"
         size="lg"

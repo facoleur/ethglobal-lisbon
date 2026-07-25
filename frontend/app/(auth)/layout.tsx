@@ -11,6 +11,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  {/* back button visible on non-root auth pages */}
   const back = !ROOT_AUTH_PAGES.includes(pathname);
 
   return <ScreenLayout back={back}>{children}</ScreenLayout>;
