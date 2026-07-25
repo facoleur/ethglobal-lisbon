@@ -15,10 +15,12 @@ export default function SettingsPage() {
 
   return (
     <>
+      {/* settings options */}
       <div className="flex flex-col px-6 py-8">
         <h1 className="text-xl font-semibold mb-6">{t("title")}</h1>
 
         <div className="flex flex-col">
+          {/* TAR configuration */}
           <button
             onClick={() => setTarOpen(true)}
             className="flex items-center justify-between py-4 text-left"
@@ -40,6 +42,7 @@ export default function SettingsPage() {
 
           <Separator />
 
+          {/* account removal */}
           <button
             onClick={() => setRemoveOpen(true)}
             className="flex items-center justify-between py-4 text-left"
@@ -61,6 +64,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* settings drawers */}
       <TarDrawer open={tarOpen} onOpenChange={setTarOpen} />
       <RemoveAccountDrawer open={removeOpen} onOpenChange={setRemoveOpen} />
     </>

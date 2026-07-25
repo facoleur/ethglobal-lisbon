@@ -32,6 +32,7 @@ export function QrCode({ value, size = 200 }: QrCodeProps) {
     };
   }, [value, size]);
 
+  // Generated QR code container.
   return (
     <div ref={containerRef} className="flex items-center justify-center" />
   );

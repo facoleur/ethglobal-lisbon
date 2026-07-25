@@ -18,6 +18,7 @@ export function RemoveAccountDrawer({
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
+        {/* account removal drawer */}
         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
         <Drawer.Content className="bg-background fixed right-0 bottom-0 left-0 flex flex-col rounded-t-2xl">
           <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-zinc-300" />
@@ -26,8 +27,10 @@ export function RemoveAccountDrawer({
               {t("title")}
             </Drawer.Title>
 
+            {/* irreversible action warning */}
             <p className="text-sm text-muted-foreground">{t("warning")}</p>
 
+            {/* confirmation actions */}
             <div className="flex flex-col gap-3">
               <Button
                 variant="destructive"

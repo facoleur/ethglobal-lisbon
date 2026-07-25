@@ -29,10 +29,12 @@ export function LockValueSlider({ value, onChange }: LockValueSliderProps) {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* selected protected balance */}
       <p className="text-2xl font-semibold tabular-nums">
         {value.toFixed(2)}{" "}
         <span className="text-base font-medium text-muted-foreground">ETH</span>
       </p>
+      {/* protected balance range */}
       <SliderPrimitive.Root
         min={MIN}
         max={MAX}

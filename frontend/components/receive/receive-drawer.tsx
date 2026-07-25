@@ -26,6 +26,7 @@ export function ReceiveDrawer({ open, onOpenChange }: ReceiveDrawerProps) {
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
+        {/* drawer backdrop and content */}
         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
         <Drawer.Content className="bg-background fixed right-0 bottom-0 left-0 flex flex-col rounded-t-2xl">
           <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-zinc-300" />
@@ -36,17 +37,17 @@ export function ReceiveDrawer({ open, onOpenChange }: ReceiveDrawerProps) {
 
             {address ? (
               <div className="flex flex-col items-center gap-4">
-                {/* QR code */}
+                {/* receive QR code */}
                 <div className="bg-white p-3 rounded-xl">
                   <QrCode value={address} size={200} />
                 </div>
 
-                {/* address */}
+                {/* wallet address */}
                 <p className="font-mono text-xs text-center break-all text-muted-foreground">
                   {address}
                 </p>
 
-                {/* copy button */}
+                {/* address copy action */}
                 <Button
                   size="lg"
                   className="w-full rounded-xl"

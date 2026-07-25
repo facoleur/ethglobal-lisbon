@@ -27,6 +27,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
+        {/* TAR settings drawer */}
         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
         <Drawer.Content className="bg-background fixed right-0 bottom-0 left-0 flex flex-col rounded-t-2xl">
           <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-zinc-300" />
@@ -35,6 +36,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
               {t("title")}
             </Drawer.Title>
 
+            {/* protected balance threshold */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-foreground">
@@ -51,6 +53,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
               <LockValueSlider value={lockValue} onChange={setLockValue} />
             </div>
 
+            {/* recovery timelock */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-foreground">
@@ -75,6 +78,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
               />
             </div>
 
+            {/* TAR settings action */}
             <Button size="lg" className="w-full rounded-xl">
               {t("saveButton")}
             </Button>

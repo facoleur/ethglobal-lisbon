@@ -32,12 +32,14 @@ export function LockTimePicker({
 }: LockTimePickerProps) {
   return (
     <WheelPickerWrapper className="w-full border-transparent bg-muted">
+      {/* timelock duration */}
       <WheelPicker<number>
         options={VALUE_OPTIONS}
         value={value}
         onValueChange={onValueChange}
         infinite
       />
+      {/* timelock unit */}
       <WheelPicker<string>
         options={UNIT_OPTIONS}
         value={unit}

@@ -69,6 +69,7 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
   return (
     <Drawer.Root open={open} onOpenChange={handleOpenChange}>
       <Drawer.Portal>
+        {/* drawer backdrop and content */}
         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
         <Drawer.Content className="bg-background fixed right-0 bottom-0 left-0 flex flex-col rounded-t-2xl">
           <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-zinc-300" />
@@ -76,6 +77,7 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
             <Drawer.Title className="mb-6 text-lg font-semibold">
               {t("title")}
             </Drawer.Title>
+            {/* transfer form */}
             <form
               ref={formRef}
               className="flex flex-col gap-4"

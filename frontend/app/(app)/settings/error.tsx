@@ -12,7 +12,9 @@ export default function SettingsError({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4">
+      {/* error message */}
       <p className="text-destructive text-sm">{t("error")}</p>
+      {/* retry action */}
       <button onClick={reset} className="text-sm underline">
         {t("tryAgain")}
       </button>

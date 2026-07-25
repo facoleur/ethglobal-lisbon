@@ -12,6 +12,7 @@ export function BottomNav() {
 
   return (
     <nav className="border-border flex shrink-0 border-t pb-[env(safe-area-inset-bottom)]">
+      {/* home destination */}
       <Link
         href="/"
         className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs ${pathname === "/" ? "text-foreground" : "text-muted-foreground"}`}
@@ -19,6 +20,7 @@ export function BottomNav() {
         <HugeiconsIcon icon={Home01Icon} strokeWidth={2} className="size-5" />
         {t("home")}
       </Link>
+      {/* settings destination */}
       <Link
         href="/settings"
         className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs ${pathname === "/settings" ? "text-foreground" : "text-muted-foreground"}`}
