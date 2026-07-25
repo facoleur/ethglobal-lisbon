@@ -23,8 +23,6 @@ import {
 
 export type PasskeyMode = "register" | "login";
 
-const PASSKEY_REQUEST_TIMEOUT_MS = 30_000;
-
 const kernelRootValidatorAbi = parseAbi([
   "function rootValidator() view returns (bytes21)",
 ]);
@@ -47,32 +45,13 @@ export async function createPasskeyCredential(
   passkeyName: string,
 ) {
   const { passkeyServerUrl, rpId } = getBrowserWalletConfig();
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(
-        new Error(
-          `Passkey request timed out for ${window.location.origin} with RP ID ${rpId}. Check the ZeroDev project domain and Vercel environment.`,
-        ),
-      );
-    }, PASSKEY_REQUEST_TIMEOUT_MS);
+  const webAuthnKey = await toWebAuthnKey({
+    passkeyName,
+    passkeyServerUrl,
+    rpID: rpId,
+    mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login,
+    passkeyServerHeaders: {},
   });
-
-  let webAuthnKey;
-  try {
-    webAuthnKey = await Promise.race([
-      toWebAuthnKey({
-        passkeyName,
-        passkeyServerUrl,
-        rpID: rpId,
-        mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login,
-        passkeyServerHeaders: {},
-      }),
-      timeout,
-    ]);
-  } finally {
-    clearTimeout(timeoutId);
-  }
   const pubKeyX = toHex(webAuthnKey.pubX, { size: 32 });
   const pubKeyY = toHex(webAuthnKey.pubY, { size: 32 });
   const publicKey = concatHex([pubKeyX, pubKeyY]);

@@ -3,7 +3,6 @@
 import { RecoveryDrawer } from "@/components/recovery/recovery-drawer";
 import { Button } from "@/components/ui/button";
 import { useLoginPasskey, useRegisterPasskey } from "@/hooks/use-kernel";
-import { getErrorMessage } from "@/lib/errors";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,35 +11,27 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const t = useTranslations("Auth.Login");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const { register, isPending: isCreating } = useRegisterPasskey();
   const { login, isPending: isLoggingIn } = useLoginPasskey();
   const [recoveryOpen, setRecoveryOpen] = useState(false);
-  const [passkeyAttempt, setPasskeyAttempt] = useState<
-    "register" | "login" | null
-  >(null);
 
   async function handleCreateWallet() {
-    setPasskeyAttempt("register");
     try {
       await register("TAR Wallet");
       router.push("/");
-    } catch (cause) {
-      toast.error(t("passkeyError", { message: getErrorMessage(cause) }));
-    } finally {
-      setPasskeyAttempt(null);
+    } catch {
+      toast.error(tCommon("error"));
     }
   }
 
   async function handleLogin() {
-    setPasskeyAttempt("login");
     try {
       await login("TAR Wallet");
       router.push("/");
-    } catch (cause) {
-      toast.error(t("passkeyError", { message: getErrorMessage(cause) }));
-    } finally {
-      setPasskeyAttempt(null);
+    } catch {
+      toast.error(tCommon("error"));
     }
   }
 
@@ -63,11 +54,6 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-auto flex flex-col gap-3">
-          {passkeyAttempt && (
-            <p className="text-muted-foreground text-center text-sm">
-              {t("passkeyTapReceived", { mode: passkeyAttempt })}
-            </p>
-          )}
           <Button
             size="lg"
             className="w-full"

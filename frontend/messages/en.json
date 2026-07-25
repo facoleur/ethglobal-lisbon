@@ -7,9 +7,6 @@
       "creating": "Setting up your wallet…",
       "loginWithPasskey": "I already have a wallet",
       "loggingIn": "Signing in…",
-      "waitingForPasskey": "Waiting for the browser passkey prompt…",
-      "passkeyTapReceived": "Tap received ({mode}). Starting passkey flow…",
-      "passkeyError": "Passkey failed: {message}",
       "recoverWallet": "Recover a wallet"
     },
     "Recovery": {

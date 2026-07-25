@@ -87,9 +87,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
     passkeyName: string,
     targetAccount?: Address,
   ) => {
-    if (isConnecting.current) {
-      throw new Error("A wallet connection is already in progress.");
-    }
+    if (isConnecting.current) return;
 
     const name = passkeyName.trim() || DEFAULT_PASSKEY_NAME;
 
