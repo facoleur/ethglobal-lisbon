@@ -14,4 +14,5 @@ pre-commit:
       stage_fixed: true
 
     frontend-typecheck:
+      glob: "frontend/**/*.{ts,tsx}"
       run: cd frontend && node_modules/.bin/tsc --noEmit
