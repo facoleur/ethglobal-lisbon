@@ -47,5 +47,12 @@ No custom swipe gestures. iOS and Android both provide system-level back gesture
 Dont add border when not necessary.
 Make every color a variable. I want to be able to change theme really easily in one place.
 
+## Reusable primitives (use these, don't reimplement)
+
+- Error boundaries → `<ErrorPage>` from `components/ui/error-page.tsx`
+- Auth page headers → `<PageHeader>` from `components/ui/page-header.tsx`
+- Settings rows → `<SettingsMenuItem>` from `components/settings/settings-menu-item.tsx`
+- Haptics → `haptic()` from `lib/haptics.ts` — only API to use, do NOT use `use-haptic.ts` (deleted)
+
 <!-- END:nextjs-agent-rules -->
 

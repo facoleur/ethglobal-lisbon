@@ -5,16 +5,13 @@ import type { Address, Hex } from "viem";
 import type { WaitForUserOperationReceiptReturnType } from "viem/account-abstraction";
 import { useKernelContext } from "@/providers/kernel-provider";
 import { publicClient } from "@/lib/kernel/config";
+import { normalizeError } from "@/lib/errors";
 
 export type KernelCall = {
   to: Address;
   data?: Hex;
   value?: bigint;
 };
-
-function normalizeError(error: unknown) {
-  return error instanceof Error ? error : new Error("Unexpected wallet error.");
-}
 
 export function useKernelAccount() {
   const { session, status, error, disconnect } = useKernelContext();

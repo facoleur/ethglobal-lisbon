@@ -15,6 +15,7 @@ import {
   type KernelSession,
   type PasskeyMode,
 } from "@/lib/kernel/create-session";
+import { normalizeError } from "@/lib/errors";
 
 export type KernelStatus = "disconnected" | "connecting" | "connected";
 
@@ -30,10 +31,6 @@ type KernelContextValue = {
 const KernelContext = createContext<KernelContextValue | null>(null);
 
 const DEFAULT_PASSKEY_NAME = "TAR Wallet";
-
-function normalizeError(error: unknown) {
-  return error instanceof Error ? error : new Error("Unexpected wallet error.");
-}
 
 export function KernelProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<KernelSession | null>(null);

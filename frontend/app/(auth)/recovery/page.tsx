@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { useTranslations } from "next-intl";
 
 export default function RecoveryPage() {
@@ -7,11 +8,7 @@ export default function RecoveryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
-      </div>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       {/* address input */}
       <div className="flex flex-col gap-2">
