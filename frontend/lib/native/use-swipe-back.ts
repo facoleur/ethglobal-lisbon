@@ -18,6 +18,14 @@ type SwipeBackReturn = {
   };
 };
 
+function isIOS() {
+  return (
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    // iPadOS 13+ reports as MacIntel
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export function useSwipeBack({
   onBack,
   threshold = 0.35,
@@ -27,16 +35,15 @@ export function useSwipeBack({
   const [isGesturing, setIsGesturing] = useState(false);
   const isActiveRef = useRef(false);
   const startXRef = useRef(0);
-  const isStandaloneRef = useRef(false);
+  const enabledRef = useRef(false);
 
+  // iOS has a system-level swipe back in both browser and standalone — skip ours
   useEffect(() => {
-    isStandaloneRef.current = window.matchMedia(
-      "(display-mode: standalone)",
-    ).matches;
+    enabledRef.current = !isIOS();
   }, []);
 
   const onTouchStart: React.TouchEventHandler = (e) => {
-    if (!isStandaloneRef.current) return;
+    if (!enabledRef.current) return;
     const clientX = e.touches[0].clientX;
     if (clientX < edgeZone) {
       isActiveRef.current = true;
@@ -45,14 +52,14 @@ export function useSwipeBack({
   };
 
   const onTouchMove: React.TouchEventHandler = (e) => {
-    if (!isStandaloneRef.current || !isActiveRef.current) return;
+    if (!enabledRef.current || !isActiveRef.current) return;
     const delta = e.touches[0].clientX - startXRef.current;
     dragX.set(Math.max(0, delta));
     if (!isGesturing) setIsGesturing(true);
   };
 
   const onTouchEnd: React.TouchEventHandler = () => {
-    if (!isStandaloneRef.current || !isActiveRef.current) return;
+    if (!enabledRef.current || !isActiveRef.current) return;
     isActiveRef.current = false;
     setIsGesturing(false);
 
