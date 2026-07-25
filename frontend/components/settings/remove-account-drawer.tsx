@@ -1,11 +1,11 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
 import { useDisconnectKernel } from "@/hooks/use-kernel";
 import { useWalletStore } from "@/lib/store/wallet";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 
 type RemoveAccountDrawerProps = {
   open: boolean;
@@ -31,7 +31,7 @@ export function RemoveAccountDrawer({
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t("title")}>
       <p className="text-sm text-muted-foreground">{t("warning")}</p>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
         <Button
           variant="destructive"
           size="lg"

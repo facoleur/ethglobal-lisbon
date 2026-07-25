@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ScanLine } from "lucide-react";
 import { isAddress } from "viem";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
+import { QrScanner } from "@/components/ui/qr-scanner";
+import { StepStake } from "@/components/recovery/step-stake";
+import { StepWaiting } from "@/components/recovery/step-waiting";
 import { useRecoveryStore } from "@/lib/store/recovery";
 
 type RecoveryDrawerProps = {
@@ -16,9 +20,10 @@ type RecoveryDrawerProps = {
 
 export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
   const t = useTranslations("Auth.Recovery");
-  const router = useRouter();
-  const { setTargetAccount, setStatus } = useRecoveryStore();
+  const { setTargetAccount, setStatus, status } = useRecoveryStore();
   const [address, setAddress] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const touched = address.length > 0;
   const valid = isAddress(address);
@@ -28,38 +33,78 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
     setTargetAccount(address);
     setStatus("staking");
     onOpenChange(false);
-    router.push("/recovery");
+    setSheetOpen(true);
   }
 
-  function handleOpenChange(next: boolean) {
+  function handleBottomSheetChange(next: boolean) {
     if (!next) setAddress("");
     onOpenChange(next);
   }
 
-  return (
-    <BottomSheet
-      open={open}
-      onOpenChange={handleOpenChange}
-      title={t("step1Title")}
-    >
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">{t("addressLabel")}</label>
-        <Input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder={t("addressPlaceholder")}
-          aria-invalid={touched && !valid}
-        />
-      </div>
+  function handleSheetClose() {
+    setSheetOpen(false);
+  }
 
-      <Button
-        size="lg"
-        className="w-full rounded-2xl py-4"
-        onClick={handleContinue}
-        disabled={!valid}
+  return (
+    <>
+      <BottomSheet
+        open={open}
+        onOpenChange={handleBottomSheetChange}
+        title={t("step1Title")}
       >
-        {t("continueButton")}
-      </Button>
-    </BottomSheet>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">{t("addressLabel")}</label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setScannerOpen(true)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            >
+              <ScanLine className="size-5" />
+            </button>
+            <Input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={t("addressPlaceholder")}
+              aria-invalid={touched && !valid}
+              className="pl-12"
+            />
+          </div>
+        </div>
+
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={handleContinue}
+          disabled={!valid}
+        >
+          {t("continueButton")}
+        </Button>
+      </BottomSheet>
+
+      <FullscreenSheet
+        open={sheetOpen && status === "staking"}
+        onOpenChange={(v) => !v && handleSheetClose()}
+      >
+        <StepStake />
+      </FullscreenSheet>
+
+      <BottomSheet
+        open={sheetOpen && status !== "staking" && status !== "idle"}
+        onOpenChange={(v) => !v && handleSheetClose()}
+      >
+        <StepWaiting />
+      </BottomSheet>
+
+      {scannerOpen && (
+        <QrScanner
+          onDetect={(value) => {
+            setAddress(value);
+            setScannerOpen(false);
+          }}
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
+    </>
   );
 }

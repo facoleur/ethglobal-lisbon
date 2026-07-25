@@ -24,7 +24,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col">
       {/* main content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-sm px-6 py-8">{children}</div>
+        <div className="mx-auto w-full max-w-sm px-6 py-8 pb-32">
+          {children}
+        </div>
       </main>
 
       {/* bottom navigation */}

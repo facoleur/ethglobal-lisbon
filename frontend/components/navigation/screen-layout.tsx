@@ -39,7 +39,7 @@ export function ScreenLayout({
           <button
             onClick={() => router.back()}
             aria-label="Go back"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+            className="flex h-10 w-10 items-center justify-center rounded-xl squircle text-foreground"
           >
             <ChevronLeft />
           </button>

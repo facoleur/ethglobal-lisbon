@@ -9,6 +9,7 @@ type PersistedVetoState = {
   status: VetoStatus;
   recovererAddress: `0x${string}` | null;
   executableAt: number | null;
+  detectedAt: number | null;
 };
 
 type VetoState = PersistedVetoState & {
@@ -26,10 +27,21 @@ export const useVetoStore = create<VetoState>()(
       status: "idle",
       recovererAddress: null,
       executableAt: null,
+      detectedAt: null,
       setPending: (recovererAddress, executableAt) =>
-        set({ status: "pending", recovererAddress, executableAt }),
+        set({
+          status: "pending",
+          recovererAddress,
+          executableAt,
+          detectedAt: Date.now(),
+        }),
       clear: () =>
-        set({ status: "idle", recovererAddress: null, executableAt: null }),
+        set({
+          status: "idle",
+          recovererAddress: null,
+          executableAt: null,
+          detectedAt: null,
+        }),
     }),
     {
       name: "tar-veto",
@@ -38,6 +50,7 @@ export const useVetoStore = create<VetoState>()(
         status: state.status,
         recovererAddress: state.recovererAddress,
         executableAt: state.executableAt,
+        detectedAt: state.detectedAt,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

@@ -17,7 +17,7 @@ import {
 
 export function StepStake() {
   const t = useTranslations("Auth.Recovery");
-  const { targetAccount, setCommitted, clear } = useRecoveryStore();
+  const { targetAccount, setCommitted } = useRecoveryStore();
   const [isPending, setIsPending] = useState(false);
 
   const eip681Uri = buildEip681Uri(
@@ -41,12 +41,12 @@ export function StepStake() {
           <p className="text-muted-foreground text-sm">{t("step2Subtitle")}</p>
         </div>
 
-        <div className="border-border flex flex-col gap-3 rounded-2xl border p-4">
+        <div className="flex flex-col gap-3 rounded-2xl bg-black/[0.04] p-4">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">
               {t("targetAddressLabel")}
             </span>
-            <span className="font-mono text-sm font-medium">
+            <span className="text-sm font-medium">
               {targetAccount ? truncateAddress(targetAccount) : "—"}
             </span>
           </div>
@@ -82,15 +82,6 @@ export function StepStake() {
           disabled={isPending}
         >
           {isPending ? t("stakingButton") : t("stakeButton")}
-        </Button>
-        <Button
-          size="lg"
-          variant="ghost"
-          className="w-full rounded-2xl py-4"
-          onClick={clear}
-          disabled={isPending}
-        >
-          {t("cancelButton")}
         </Button>
       </div>
     </div>

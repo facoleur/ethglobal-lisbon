@@ -34,7 +34,7 @@ export function LockTimePicker({
   ];
 
   return (
-    <WheelPickerWrapper className="w-full border-transparent bg-muted">
+    <WheelPickerWrapper className="w-full border-transparent bg-black/[0.03]">
       {/* timelock duration */}
       <WheelPicker<number>
         options={VALUE_OPTIONS}

@@ -43,7 +43,10 @@
     "Home": {
       "balanceLabel": "Balance",
       "sendButton": "Send",
-      "receiveButton": "Receive"
+      "receiveButton": "Receive",
+      "swapButton": "Swap",
+      "activityTitle": "Activity",
+      "activityEmpty": "No transactions yet"
     },
     "Settings": {
       "title": "Settings",
@@ -55,10 +58,9 @@
         "title": "TAR Settings",
         "lockValue": "Lock Value",
         "lockValuePlaceholder": "0.1 ETH",
-        "lockValueRecommended": "Recommended",
+        "useRecommended": "Use recommended",
         "lockTime": "Lock Time",
         "lockTimePlaceholder": "7 days",
-        "lockTimeRecommended": "Recommended",
         "days": "Days",
         "weeks": "Weeks",
         "months": "Months",
