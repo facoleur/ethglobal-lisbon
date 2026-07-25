@@ -1,8 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
-import { useSwipeBack } from "@/lib/native/use-swipe-back";
 
 type ScreenLayoutProps = {
   children: React.ReactNode;
@@ -28,14 +26,9 @@ function ChevronLeft() {
 
 export function ScreenLayout({ children, back = false }: ScreenLayoutProps) {
   const router = useRouter();
-  const { dragX, handlers } = useSwipeBack({ onBack: () => router.back() });
 
   return (
-    <motion.div
-      className="flex h-full flex-col"
-      style={back ? { x: dragX } : undefined}
-      {...(back ? handlers : {})}
-    >
+    <div className="flex h-full flex-col">
       {back && (
         <div className="shrink-0 flex items-center px-2 pt-4">
           <button
@@ -50,6 +43,6 @@ export function ScreenLayout({ children, back = false }: ScreenLayoutProps) {
       <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8">
         <div className="w-full max-w-sm">{children}</div>
       </div>
-    </motion.div>
+    </div>
   );
 }
