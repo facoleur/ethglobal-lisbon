@@ -3,7 +3,11 @@ import { formatEther, parseEther } from "viem";
 export const SEPOLIA_CHAIN_ID = 11155111;
 export const BROADCASTER_GAS_BUFFER = parseEther("0.01");
 export const FINALIZER_GAS_BUFFER = parseEther("0.001");
+
 const MOCK_CHALLENGE_WINDOW_MS = 30_000;
+export const MOCK_LOCK_TIME_LABEL = "1 minute";
+export const MOCK_LOCK_VALUE_ETH = 0.01;
+export const MOCK_LOCK_TIME_MS = 60 * 1000; // 1 minutes
 
 export function buildEip681Uri(
   to: string,

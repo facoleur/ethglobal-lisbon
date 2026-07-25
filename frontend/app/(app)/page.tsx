@@ -1,31 +1,31 @@
 "use client";
 
 import { ReceiveDrawer } from "@/components/receive/receive-drawer";
-import { VetoDrawer } from "@/components/recovery/veto-drawer";
+import { RecoverySummaryCard } from "@/components/recovery-center/recovery-summary-card";
 import { SendDrawer } from "@/components/send/send-drawer";
 import { AccountAvatar } from "@/components/ui/account-avatar";
 import { ActionButton } from "@/components/ui/action-button";
 import { useKernelAccount, useKernelBalance } from "@/hooks/use-kernel";
-import { simulateIncomingRecovery, truncateAddress } from "@/lib/recovery";
-import { useVetoStore } from "@/lib/store/veto";
-import { ArrowDown, ArrowLeftRight, ArrowUp, Inbox } from "lucide-react";
+import { truncateAddress } from "@/lib/recovery";
+import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
+import { useWatchTowerStore } from "@/lib/store/watch-towers";
+import { ArrowDown, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatEther } from "viem";
 
 export default function HomePage() {
   const t = useTranslations("App.Home");
+  const router = useRouter();
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
 
   const { address } = useKernelAccount();
   const { balance } = useKernelBalance();
-  const {
-    status: vetoStatus,
-    hasHydrated: vetoHydrated,
-    setPending,
-  } = useVetoStore();
-  const vetoOpen = vetoHydrated && vetoStatus === "pending";
+  const { attempts, hasHydrated: attemptsHydrated } = useRecoveryCenterStore();
+  const { watchTowers, hasHydrated: watchTowersHydrated } =
+    useWatchTowerStore();
 
   return (
     <>
@@ -63,36 +63,27 @@ export default function HomePage() {
           <ActionButton icon={ArrowLeftRight} label={t("swapButton")} />
         </div>
 
-        {/* activity */}
+        {/* recovery status */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">{t("activityTitle")}</h2>
-          <div className="flex flex-col items-center gap-3 rounded-2xl squircle bg-white/60 py-10">
-            <Inbox
-              className="size-7 text-muted-foreground/40"
-              strokeWidth={1.5}
-            />
-            <p className="text-sm text-muted-foreground">
-              {t("activityEmpty")}
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold">{t("recoveryTitle")}</h2>
+          <RecoverySummaryCard
+            attemptCount={attemptsHydrated ? attempts.length : 0}
+            watchTowerCount={watchTowersHydrated ? watchTowers.length : 0}
+            alertTitle={t("recoveryAlertTitle")}
+            alertSubtitle={t("recoveryAlertSubtitle")}
+            protectedTitle={t("protectionTitle")}
+            protectedSubtitle={
+              watchTowersHydrated && watchTowers.length > 0
+                ? t("protectionWithTowers", { count: watchTowers.length })
+                : t("protectionWithoutTowers")
+            }
+            onClick={() => router.push("/recovery")}
+          />
         </div>
-
-        {process.env.NODE_ENV === "development" && (
-          <button
-            className="text-muted-foreground text-left text-xs underline"
-            onClick={async () => {
-              const data = await simulateIncomingRecovery();
-              setPending(data.recovererAddress, data.executableAt);
-            }}
-          >
-            [dev] Simulate incoming recovery
-          </button>
-        )}
       </div>
 
       <SendDrawer open={sendOpen} onOpenChange={setSendOpen} />
       <ReceiveDrawer open={receiveOpen} onOpenChange={setReceiveOpen} />
-      <VetoDrawer open={vetoOpen} />
     </>
   );
 }

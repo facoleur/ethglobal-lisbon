@@ -20,7 +20,7 @@ type TarDrawerProps = {
 };
 
 export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
-  const t = useTranslations("App.Settings.TarDrawer");
+  const t = useTranslations("App.Recovery.TarDrawer");
   const tCommon = useTranslations("Common");
   const { updateRecoveryParams, isConfigured, isPending } =
     useUpdateRecoveryParams();

@@ -1,0 +1,72 @@
+"use client";
+
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  MAX_WATCH_TOWERS,
+  type WatchedWallet,
+  type WatchTower,
+} from "@/lib/watch-towers";
+
+type PersistedWatchTowerState = {
+  watchTowers: WatchTower[];
+  watchedWallets: WatchedWallet[];
+};
+
+type WatchTowerState = PersistedWatchTowerState & {
+  hasHydrated: boolean;
+  setHasHydrated: (value: boolean) => void;
+  addWatchTower: (watchTower: WatchTower) => void;
+  removeWatchTower: (id: string) => void;
+  addWatchedWallet: (wallet: WatchedWallet) => void;
+  removeWatchedWallet: (id: string) => void;
+  clear: () => void;
+};
+
+export const useWatchTowerStore = create<WatchTowerState>()(
+  persist(
+    (set) => ({
+      hasHydrated: false,
+      watchTowers: [],
+      watchedWallets: [],
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+      addWatchTower: (watchTower) =>
+        set((state) => {
+          const alreadyExists = state.watchTowers.some(
+            (item) => item.secret === watchTower.secret,
+          );
+          if (alreadyExists || state.watchTowers.length >= MAX_WATCH_TOWERS) {
+            return state;
+          }
+          return { watchTowers: [...state.watchTowers, watchTower] };
+        }),
+      removeWatchTower: (id) =>
+        set((state) => ({
+          watchTowers: state.watchTowers.filter((item) => item.id !== id),
+        })),
+      addWatchedWallet: (wallet) =>
+        set((state) => {
+          const withoutDuplicate = state.watchedWallets.filter(
+            (item) => item.address !== wallet.address,
+          );
+          return { watchedWallets: [...withoutDuplicate, wallet] };
+        }),
+      removeWatchedWallet: (id) =>
+        set((state) => ({
+          watchedWallets: state.watchedWallets.filter((item) => item.id !== id),
+        })),
+      clear: () => set({ watchTowers: [], watchedWallets: [] }),
+    }),
+    {
+      name: "tar-watch-towers",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state): PersistedWatchTowerState => ({
+        watchTowers: state.watchTowers,
+        watchedWallets: state.watchedWallets,
+      }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    },
+  ),
+);
