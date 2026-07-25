@@ -23,7 +23,8 @@
   "App": {
     "Home": {
       "balanceLabel": "Balance",
-      "sendButton": "Send"
+      "sendButton": "Send",
+      "receiveButton": "Receive"
     },
     "Settings": {
       "title": "Settings"
@@ -33,6 +34,11 @@
       "recipientPlaceholder": "Recipient address (0x...)",
       "amountPlaceholder": "Amount (ETH)",
       "confirmButton": "Confirm"
+    },
+    "ReceiveDrawer": {
+      "title": "Receive",
+      "copyButton": "Copy address",
+      "copied": "Address copied!"
     }
   },
   "Navigation": {
