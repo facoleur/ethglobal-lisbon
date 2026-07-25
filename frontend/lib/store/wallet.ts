@@ -1,32 +1,37 @@
 "use client";
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import type { KernelAccountClient } from "@zerodev/sdk";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 type PersistedWalletState = {
   credentialId: string | null;
   accountAddress: string | null;
+  publicKey: string | null;
 };
 
 type WalletState = PersistedWalletState & {
-  kernelClient: KernelAccountClient | null;
-  setCredential: (credentialId: string, accountAddress: string) => void;
-  setKernelClient: (client: KernelAccountClient) => void;
+  hasHydrated: boolean;
+  setHasHydrated: (val: boolean) => void;
+  setCredential: (
+    credentialId: string,
+    accountAddress: string,
+    publicKey: string,
+  ) => void;
   clear: () => void;
 };
 
 export const useWalletStore = create<WalletState>()(
   persist(
     (set) => ({
+      hasHydrated: false,
+      setHasHydrated: (val) => set({ hasHydrated: val }),
       credentialId: null,
       accountAddress: null,
-      kernelClient: null,
-      setCredential: (credentialId, accountAddress) =>
-        set({ credentialId, accountAddress }),
-      setKernelClient: (kernelClient) => set({ kernelClient }),
+      publicKey: null,
+      setCredential: (credentialId, accountAddress, publicKey) =>
+        set({ credentialId, accountAddress, publicKey }),
       clear: () =>
-        set({ credentialId: null, accountAddress: null, kernelClient: null }),
+        set({ credentialId: null, accountAddress: null, publicKey: null }),
     }),
     {
       name: "tar-wallet",
@@ -34,7 +39,11 @@ export const useWalletStore = create<WalletState>()(
       partialize: (state): PersistedWalletState => ({
         credentialId: state.credentialId,
         accountAddress: state.accountAddress,
+        publicKey: state.publicKey,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

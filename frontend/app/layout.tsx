@@ -33,6 +33,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${figtree.variable} font-sans antialiased`}>
       <body className="h-dvh overflow-hidden bg-background text-foreground">
+        {/* i18n & providers */}
         <NextIntlClientProvider messages={messages}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

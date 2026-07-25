@@ -6,7 +6,10 @@ export default async function NotFound() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4">
+      {/* not found message */}
       <p className="text-muted-foreground text-sm">{t("notFound")}</p>
+
+      {/* go home link */}
       <Link href="/" className="text-sm underline">
         {t("goHome")}
       </Link>

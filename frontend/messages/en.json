@@ -5,6 +5,8 @@
       "subtitle": "Create or recover your wallet.",
       "createWallet": "Create a wallet",
       "creating": "Setting up your wallet…",
+      "loginWithPasskey": "I already have a wallet",
+      "loggingIn": "Signing in…",
       "recoverWallet": "Recover a wallet"
     },
     "Recovery": {
@@ -23,16 +25,42 @@
   "App": {
     "Home": {
       "balanceLabel": "Balance",
-      "sendButton": "Send"
+      "sendButton": "Send",
+      "receiveButton": "Receive"
     },
     "Settings": {
-      "title": "Settings"
+      "title": "Settings",
+      "tarSettings": "TAR Settings",
+      "tarSettingsSubtitle": "Lock value & lock time",
+      "removeAccount": "Remove Account",
+      "removeAccountSubtitle": "Forget this wallet on this device",
+      "TarDrawer": {
+        "title": "TAR Settings",
+        "lockValue": "Lock Value",
+        "lockValuePlaceholder": "0.1 ETH",
+        "lockValueRecommended": "Recommended",
+        "lockTime": "Lock Time",
+        "lockTimePlaceholder": "7 days",
+        "lockTimeRecommended": "Recommended",
+        "saveButton": "Save"
+      },
+      "RemoveAccountDrawer": {
+        "title": "Remove Account",
+        "warning": "This will remove your wallet from this device. Make sure you have your recovery method before continuing.",
+        "confirmButton": "Remove Account",
+        "cancelButton": "Cancel"
+      }
     },
     "SendDrawer": {
       "title": "Send ETH",
       "recipientPlaceholder": "Recipient address (0x...)",
       "amountPlaceholder": "Amount (ETH)",
       "confirmButton": "Confirm"
+    },
+    "ReceiveDrawer": {
+      "title": "Receive",
+      "copyButton": "Copy address",
+      "copied": "Address copied!"
     }
   },
   "Navigation": {
