@@ -1,0 +1,47 @@
+{
+  "Auth": {
+    "Login": {
+      "title": "Welcome",
+      "subtitle": "Create or recover your wallet.",
+      "createWallet": "Create a wallet",
+      "recoverWallet": "Recover a wallet"
+    },
+    "Recovery": {
+      "title": "Recover wallet",
+      "subtitle": "Send the required amount to your wallet address to recover access.",
+      "addressLabel": "Your address",
+      "addressPlaceholder": "Paste or type your address (0x...)",
+      "qrPlaceholder": "QR code",
+      "qrCaption": "Scan to send from another wallet",
+      "instructionsTitle": "Instructions",
+      "step1": "Copy or scan the address above",
+      "step2": "Send exactly the required amount from your other wallet",
+      "step3": "Wait for confirmation — this page will update automatically"
+    }
+  },
+  "App": {
+    "Home": {
+      "balanceLabel": "Balance",
+      "sendButton": "Send"
+    },
+    "Settings": {
+      "title": "Settings"
+    },
+    "SendDrawer": {
+      "title": "Send ETH",
+      "recipientPlaceholder": "Recipient address (0x...)",
+      "amountPlaceholder": "Amount (ETH)",
+      "confirmButton": "Confirm"
+    }
+  },
+  "Navigation": {
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "Common": {
+    "error": "Something went wrong.",
+    "tryAgain": "Try again",
+    "notFound": "Page not found",
+    "goHome": "Go home"
+  }
+}
