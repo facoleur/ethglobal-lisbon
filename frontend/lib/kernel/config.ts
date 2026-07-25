@@ -40,6 +40,14 @@ export function getBrowserWalletConfig() {
     throw new Error("Passkey authentication is only available in the browser.");
   }
 
+  if (!window.isSecureContext) {
+    throw new Error("Passkeys require a secure HTTPS connection.");
+  }
+
+  if (!("PublicKeyCredential" in window)) {
+    throw new Error("This browser does not support passkeys.");
+  }
+
   const passkeyServerUrl =
     process.env.NEXT_PUBLIC_ZERODEV_PASSKEY_SERVER_URL?.trim();
   const configuredPimlicoUrl = process.env.NEXT_PUBLIC_PIMLICO_RPC_URL?.trim();
@@ -57,12 +65,20 @@ export function getBrowserWalletConfig() {
     );
   }
 
+  const rpId =
+    process.env.NEXT_PUBLIC_PASSKEY_RP_ID?.trim() || window.location.hostname;
+  const hostname = window.location.hostname;
+  if (hostname !== rpId && !hostname.endsWith(`.${rpId}`)) {
+    throw new Error(
+      `Passkey RP ID ${rpId} does not match the current domain ${hostname}.`,
+    );
+  }
+
   return {
     passkeyServerUrl: passkeyServerUrl.replace(/\/$/, ""),
     pimlicoUrl:
       configuredPimlicoUrl ||
       `https://api.pimlico.io/v2/${chain.id}/rpc?apikey=${pimlicoApiKey}`,
-    rpId:
-      process.env.NEXT_PUBLIC_PASSKEY_RP_ID?.trim() || window.location.hostname,
+    rpId,
   };
 }
