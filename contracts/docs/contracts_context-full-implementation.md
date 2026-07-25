@@ -80,14 +80,14 @@ struct RecoveryRequest {
 
 ```solidity
 mapping(address => RecoveryConfig) public configs;          // configs[account]
-mapping(bytes32 => bool) public pendingCommitments;          // existence uniquement, pas de stake ni timestamp
+mapping(bytes32 => uint256) public pendingCommitments;       // 0 = absent, sinon block.number du requestRecovery
 mapping(address => RecoveryRequest) public recoveries;       // clé = addressToRecover, pas un recoveryId séparé
 ```
 
 Points de design associés :
 - **Pas de `recoveryId` séparé** : la reconstruction du commitment au reveal suffit comme clé pendant la phase pending ; après reveal, l'indexation bascule sur `addressToRecover` directement (les fonctions `challengeRecovery`/`finalizeRecovery` ne prennent qu'un seul paramètre : l'adresse du compte ciblé).
 - **Pas de mapping `activeRecovery` séparé** : `recoveries[addressToRecover].status == RecoveryStatus.Revealed` **est** la garde active-recovery — un mapping dédié serait redondant et risquerait de désynchroniser deux sources de vérité.
-- **`pendingCommitments` réduit à un mapping d'existence** (`bytes32 => bool`) : comme aucune value n'est stakée au `requestRecovery` et qu'aucune expiration n'est monitorée (voir limite acceptée ci-dessous), il n'y a besoin ni de `stakedValue` ni de `requestTimestamp` à ce stade.
+- **`pendingCommitments` stocke le numéro de bloc du commit** (`bytes32 => uint256`, pas un simple booléen) : nécessaire pour appliquer `MIN_COMMIT_REVEAL_BLOCKS` au reveal (§4.3) et empêcher un commit+reveal dans le même bloc. Toujours pas de `stakedValue` à ce stade (aucune value n'est stakée au `requestRecovery`), et toujours aucune expiration monitorée (voir limite acceptée ci-dessous).
 
 ### 4.3 Fonctions
 
@@ -100,7 +100,7 @@ function updateRecoveryParams(uint256 lockValue, uint256 lockTime) external;
 // N'importe qui, non-payable
 function requestRecovery(bytes32 commitment) external;
 ```
-Enregistre l'existence du commitment dans `pendingCommitments`. Ne révèle aucune information sur `addressToRecover` (caché dans le hash). Émet `RecoveryRequested`.
+Enregistre le **numéro de bloc** du commitment dans `pendingCommitments` (pas un simple booléen — voir ci-dessous). Ne révèle aucune information sur `addressToRecover` (caché dans le hash). Émet `RecoveryRequested`.
 
 ```solidity
 // Doit être appelé par broadcasterAddress (msg.sender == broadcasterAddress, sinon revert)
@@ -113,7 +113,9 @@ function revealRecovery(
     bytes32 salt
 ) external payable;
 ```
-Recalcule le commitment (formule en §4.4), vérifie qu'il existe dans `pendingCommitments`, vérifie qu'aucune recovery n'est déjà `Revealed` sur ce compte (garde active-recovery), consomme l'entrée `pendingCommitments` (delete), écrit `recoveries[addressToRecover]`, émet `RecoveryRevealed`.
+Recalcule le commitment (formule en §4.4), vérifie qu'il existe dans `pendingCommitments`, vérifie que **`MIN_COMMIT_REVEAL_BLOCKS` (1) bloc au moins s'est écoulé depuis le `requestRecovery`** (voir ci-dessous), vérifie qu'aucune recovery n'est déjà `Revealed` sur ce compte (garde active-recovery), consomme l'entrée `pendingCommitments` (delete), écrit `recoveries[addressToRecover]`, émet `RecoveryRevealed`.
+
+**Délai minimum commit→reveal (résolu, ajouté après coup — point manquant dans les versions précédentes de ce document) :** sans délai, un attaquant qui observe en mempool le `revealRecovery` d'une victime peut réagir en committant *et* révélant sa propre tentative malveillante dans le **même bloc**, volant la garde active-recovery (`RecoveryAlreadyActive`) avant que le reveal légitime n'atterrisse. `pendingCommitments` stocke donc `block.number` au lieu d'un booléen ; `revealRecovery` exige `block.number >= commitBlock + MIN_COMMIT_REVEAL_BLOCKS` (`MIN_COMMIT_REVEAL_BLOCKS = 1`, pattern standard ENS/Uniswap). Un seul bloc suffit contre cette attaque précise : le commit réactif de l'attaquant ne peut mûrir qu'au bloc suivant, par lequel le reveal légitime a déjà atterri. **Ce que ça ne protège pas** : un attaquant patient qui connaît la cible à l'avance peut toujours committer/révéler des jours avant toute tentative légitime — c'est inhérent au principe "n'importe qui peut initier une recovery" et reste défendu par le veto de l'owner (`challengeRecovery`), pas par la rareté des tentatives.
 
 ```solidity
 // Owner du compte ciblé, vérifié via ERC-1271 (isValidSignature du compte, agnostique du validator actif)

@@ -45,13 +45,24 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
     // matching the value in `kernel/src/types/Constants.sol` (`MODULE_TYPE_EXECUTOR = 2`).
     uint256 internal constant MODULE_TYPE_EXECUTOR = 2;
 
+    // Minimum number of blocks between a commitment's `requestRecovery` and its `revealRecovery`.
+    // 1 block is the standard minimum for this class of attack (ENS/Uniswap-style commit-reveal):
+    // it blocks an attacker who reacts to a victim's pending `revealRecovery` in the mempool by
+    // committing and revealing their own malicious attempt within that same block, since their
+    // commitment cannot mature until the following block — by which time the victim's reveal has
+    // already landed and taken the `RecoveryAlreadyActive` slot. It does not (and is not meant to)
+    // stop a patient attacker who pre-commits against a known target well in advance; that attack
+    // is inherent to "anyone can initiate a recovery" and is defended by the owner's veto instead.
+    uint256 internal constant MIN_COMMIT_REVEAL_BLOCKS = 1;
+
     // `finalizeRecovery` target for the signer rotation call. Fixed at deployment, never a
     // parameter — see contract-level note. Milestone B: a `MockRotatableValidator` test double.
     // Milestone E: the real `TARWebAuthnValidator` (requires redeploying this contract).
     address public immutable validator;
 
     mapping(address account => RecoveryConfig config) public configs;
-    mapping(bytes32 commitment => bool exists) public pendingCommitments;
+    // 0 = no pending commitment; otherwise the block number `requestRecovery` was called at.
+    mapping(bytes32 commitment => uint256 commitBlock) public pendingCommitments;
     mapping(address addressToRecover => RecoveryRequest request) public recoveries;
 
     // No separate `activeRecovery` mapping: `recoveries[account].status == RecoveryStatus.Revealed`
@@ -95,11 +106,12 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
         emit RecoveryParamsUpdated(msg.sender, lockValue, lockTime);
     }
 
-    /// @dev No uniqueness check — a commitment already pending is simply rewritten to `true`
-    /// (no-op). Unbounded spam is an accepted POC limit (`context-full-implementation.md` §7):
-    /// this is entirely gas-only, no value is ever at stake at this step.
+    /// @dev No uniqueness check — a commitment already pending simply has its block number
+    /// refreshed (no-op beyond resetting the `MIN_COMMIT_REVEAL_BLOCKS` clock). Unbounded spam is
+    /// an accepted POC limit (`context-full-implementation.md` §7): this is entirely gas-only, no
+    /// value is ever at stake at this step.
     function requestRecovery(bytes32 commitment) external {
-        pendingCommitments[commitment] = true;
+        pendingCommitments[commitment] = block.number;
         emit RecoveryRequested(commitment);
     }
 
@@ -126,7 +138,9 @@ contract TARRecoveryExecutor is ITARRecovery, ReentrancyGuard {
         if (pubKeyX == 0 || pubKeyY == 0) revert InvalidPublicKey();
 
         bytes32 commitment = keccak256(abi.encodePacked(addressToRecover, broadcasterAddress, pubKeyX, pubKeyY, salt));
-        if (!pendingCommitments[commitment]) revert CommitmentNotFound();
+        uint256 commitBlock = pendingCommitments[commitment];
+        if (commitBlock == 0) revert CommitmentNotFound();
+        if (block.number < commitBlock + MIN_COMMIT_REVEAL_BLOCKS) revert CommitmentNotMature();
 
         if (msg.value != configs[addressToRecover].lockValue) {
             revert WrongStakedAmount();

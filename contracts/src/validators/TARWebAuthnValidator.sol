@@ -5,9 +5,9 @@ import {IValidator} from "kernel/interfaces/IERC7579Modules.sol";
 import {PackedUserOperation} from "kernel/interfaces/PackedUserOperation.sol";
 import {WebAuthn} from "kernel-7579-plugins/utils/WebAuthn.sol";
 
-import {IRotatableWebAuthnValidator} from "./interfaces/IRotatableWebAuthnValidator.sol";
+import {ITARWebAuthnValidator} from "../interfaces/ITARWebAuthnValidator.sol";
 
-/// @title RotatableWebAuthnValidator
+/// @title TARWebAuthnValidator
 /// @notice WebAuthn/P-256 Kernel validator compatible with the existing
 /// permissionless.js installation format, with an additional in-place key
 /// rotation function.
@@ -18,7 +18,7 @@ import {IRotatableWebAuthnValidator} from "./interfaces/IRotatableWebAuthnValida
 /// - During rotation, the call must also come from the Kernel account.
 /// - TAR reaches this function only through Kernel.executeFromExecutor().
 /// - TAR therefore has no global rotateFor(account, ...) authority.
-contract RotatableWebAuthnValidator is IValidator, IRotatableWebAuthnValidator {
+contract TARWebAuthnValidator is IValidator, ITARWebAuthnValidator {
     uint256 internal constant MODULE_TYPE_VALIDATOR = 1;
     uint256 internal constant SIG_VALIDATION_SUCCESS_UINT = 0;
     uint256 internal constant SIG_VALIDATION_FAILED_UINT = 1;
@@ -195,10 +195,8 @@ contract RotatableWebAuthnValidator is IValidator, IRotatableWebAuthnValidator {
             usePrecompiled
         );
     }
-    function setNewOwner(
-        uint256 newPubKeyX,
-        uint256 newPubKeyY
-    ) external override {
+
+    function setNewOwner(uint256 newPubKeyX, uint256 newPubKeyY) external {
         StoredKey storage current = _keys[msg.sender];
 
         if (current.pubKeyX == 0) {
@@ -214,12 +212,6 @@ contract RotatableWebAuthnValidator is IValidator, IRotatableWebAuthnValidator {
             current.keyVersion++;
         }
 
-        emit WebAuthnKeyRotated(
-            msg.sender,
-            current.keyVersion,
-            newPubKeyX,
-            newPubKeyY,
-            current.credentialIdHash
-        );
+        emit WebAuthnKeyRotated(msg.sender, current.keyVersion, newPubKeyX, newPubKeyY, current.credentialIdHash);
     }
 }

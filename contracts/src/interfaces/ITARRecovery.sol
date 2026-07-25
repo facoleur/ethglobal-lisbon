@@ -42,6 +42,10 @@ interface ITARRecovery is IExecutor {
     /// rather than let the caller wait out the full `lockTime` before `finalizeRecovery` reverts.
     error InvalidPublicKey();
 
+    /// @dev `revealRecovery` called in the same block as its matching `requestRecovery` (or any
+    /// block before `MIN_COMMIT_REVEAL_BLOCKS` has elapsed) — see `requestRecovery` natspec.
+    error CommitmentNotMature();
+
     event RecoveryParamsUpdated(address indexed account, uint256 lockValue, uint256 lockTime);
     event RecoveryRequested(bytes32 indexed commitment);
     event RecoveryRevealed(
@@ -53,12 +57,18 @@ interface ITARRecovery is IExecutor {
     /// @dev Owner of `msg.sender`'s own account only — no separate `account` parameter.
     function updateRecoveryParams(uint256 lockValue, uint256 lockTime) external;
 
-    /// @dev Anyone, non-payable. Records commitment existence; no uniqueness check (spam is an
-    /// accepted POC limit — see `context-full-implementation.md` §7).
+    /// @dev Anyone, non-payable. Records the commitment's block number; no uniqueness check (spam
+    /// is an accepted POC limit — see `context-full-implementation.md` §7). `revealRecovery`
+    /// enforces a minimum age (`MIN_COMMIT_REVEAL_BLOCKS`) before this commitment is revealable,
+    /// so it cannot be committed and revealed within the same block — otherwise an attacker
+    /// watching the mempool for a pending `revealRecovery` could react by committing and
+    /// revealing their own malicious attempt in that same block, stealing the
+    /// `RecoveryAlreadyActive` slot before the legitimate reveal lands.
     function requestRecovery(bytes32 commitment) external;
 
-    /// @dev Must be called by `broadcasterAddress` itself. `(pubKeyX, pubKeyY)` is a WebAuthn/P-256
-    /// public key — `uint256` to match `WebAuthnValidatorData` (Kernel) and
+    /// @dev Must be called by `broadcasterAddress` itself, at least `MIN_COMMIT_REVEAL_BLOCKS`
+    /// after the matching `requestRecovery` (see its natspec). `(pubKeyX, pubKeyY)` is a
+    /// WebAuthn/P-256 public key — `uint256` to match `WebAuthnValidatorData` (Kernel) and
     /// `TARWebAuthnValidator.setNewOwner` exactly, avoiding an implicit cast at every boundary
     /// between this contract and the validator.
     function revealRecovery(

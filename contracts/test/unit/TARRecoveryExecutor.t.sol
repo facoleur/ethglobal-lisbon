@@ -50,6 +50,7 @@ contract TARRecoveryExecutorTest is Test {
     function _requestAndReveal(bytes32 salt) internal returns (bytes32 commitment) {
         commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
         executor.requestRecovery(commitment);
+        vm.roll(block.number + 1);
         vm.prank(broadcaster);
         executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
     }
@@ -73,7 +74,7 @@ contract TARRecoveryExecutorTest is Test {
 
         (,,,,, TARRecoveryExecutor.RecoveryStatus statusAfterReveal) = executor.recoveries(address(account));
         assertEq(uint8(statusAfterReveal), uint8(TARRecoveryExecutor.RecoveryStatus.Revealed));
-        assertFalse(executor.pendingCommitments(commitment));
+        assertEq(executor.pendingCommitments(commitment), 0);
 
         vm.warp(block.timestamp + LOCK_TIME);
         executor.finalizeRecovery(address(account));
@@ -184,7 +185,7 @@ contract TARRecoveryExecutorTest is Test {
         bytes32 commitment = _requestAndReveal(salt);
         executor.challengeRecovery(address(account), _rejectSignature());
 
-        assertFalse(executor.pendingCommitments(commitment));
+        assertEq(executor.pendingCommitments(commitment), 0);
         vm.prank(broadcaster);
         vm.expectRevert(ITARRecovery.CommitmentNotFound.selector);
         executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
@@ -207,12 +208,39 @@ contract TARRecoveryExecutorTest is Test {
         bytes32 salt = bytes32(uint256(1));
         bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
         executor.requestRecovery(commitment);
+        vm.roll(block.number + 1);
 
         vm.prank(broadcaster);
         vm.expectRevert(ITARRecovery.WrongStakedAmount.selector);
         executor.revealRecovery{value: LOCK_VALUE - 1}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
 
-        assertTrue(executor.pendingCommitments(commitment));
+        assertTrue(executor.pendingCommitments(commitment) != 0);
+    }
+
+    function test_revealRecovery_sameBlockAsCommit_reverts() external {
+        bytes32 salt = bytes32(uint256(1));
+        bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
+        executor.requestRecovery(commitment);
+
+        // No vm.roll: this is exactly the race the block-delay guards against — an attacker
+        // reacting to a victim's pending reveal in the mempool by committing and revealing their
+        // own attempt within the same block.
+        vm.prank(broadcaster);
+        vm.expectRevert(ITARRecovery.CommitmentNotMature.selector);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
+    }
+
+    function test_revealRecovery_succeedsOneBlockAfterCommit() external {
+        bytes32 salt = bytes32(uint256(1));
+        bytes32 commitment = _commitment(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
+        executor.requestRecovery(commitment);
+        vm.roll(block.number + 1);
+
+        vm.prank(broadcaster);
+        executor.revealRecovery{value: LOCK_VALUE}(address(account), broadcaster, newPubKeyX, newPubKeyY, salt);
+
+        (,,,,, TARRecoveryExecutor.RecoveryStatus status) = executor.recoveries(address(account));
+        assertEq(uint8(status), uint8(TARRecoveryExecutor.RecoveryStatus.Revealed));
     }
 
     function test_revealRecovery_targetNotInitialized_reverts() external {
