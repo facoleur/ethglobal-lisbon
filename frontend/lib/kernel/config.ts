@@ -1,4 +1,4 @@
-import { createPublicClient, http } from "viem";
+import { createPublicClient, getAddress, http, type Address } from "viem";
 import { sepolia } from "viem/chains";
 import { entryPoint07Address } from "viem/account-abstraction";
 
@@ -8,6 +8,23 @@ export const entryPoint = {
   version: "0.7",
 } as const;
 export const kernelVersion = "0.3.1" as const;
+
+// WebAuthn validator shared by newly created and restored Kernel accounts.
+const defaultWebAuthnValidatorAddress =
+  "0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69";
+
+export const webAuthnValidatorAddress = getAddress(
+  process.env.NEXT_PUBLIC_WEBAUTHN_VALIDATOR_ADDRESS?.trim() ||
+    defaultWebAuthnValidatorAddress,
+);
+
+const configuredTarRecoveryExecutorAddress =
+  process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_ADDRESS?.trim();
+
+export const tarRecoveryExecutorAddress: Address | null =
+  configuredTarRecoveryExecutorAddress
+    ? getAddress(configuredTarRecoveryExecutorAddress)
+    : null;
 
 const sepoliaRpcUrl =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL?.trim() ||

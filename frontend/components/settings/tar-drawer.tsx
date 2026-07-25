@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { Drawer } from "vaul";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LockValueSlider } from "@/components/settings/lock-value-slider";
 import { LockTimePicker } from "@/components/settings/lock-time-picker";
+import { useUpdateRecoveryParams } from "@/hooks/use-tar-recovery";
+import type { LockTimeUnit } from "@/lib/contracts/tar-recovery";
 
 const RECOMMENDED_LOCK_VALUE = 0.1;
 const RECOMMENDED_LOCK_TIME_VALUE = 7;
-const RECOMMENDED_LOCK_TIME_UNIT = "days";
+const RECOMMENDED_LOCK_TIME_UNIT: LockTimeUnit = "days";
 
 type TarDrawerProps = {
   open: boolean;
@@ -18,14 +21,32 @@ type TarDrawerProps = {
 
 export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
   const t = useTranslations("App.Settings.TarDrawer");
+  const tCommon = useTranslations("Common");
+  const { updateRecoveryParams, isConfigured, isPending } =
+    useUpdateRecoveryParams();
   const [lockValue, setLockValue] = useState(RECOMMENDED_LOCK_VALUE);
   const [lockTimeValue, setLockTimeValue] = useState(
     RECOMMENDED_LOCK_TIME_VALUE,
   );
   const [lockTimeUnit, setLockTimeUnit] = useState(RECOMMENDED_LOCK_TIME_UNIT);
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && isPending) return;
+    onOpenChange(nextOpen);
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateRecoveryParams(lockValue, lockTimeValue, lockTimeUnit);
+      toast.success(t("saveSuccess"));
+      onOpenChange(false);
+    } catch {
+      toast.error(tCommon("error"));
+    }
+  };
+
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+    <Drawer.Root open={open} onOpenChange={handleOpenChange}>
       <Drawer.Portal>
         {/* TAR settings drawer */}
         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
@@ -45,6 +66,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
                 <Button
                   variant="secondary"
                   size="xs"
+                  disabled={isPending}
                   onClick={() => setLockValue(RECOMMENDED_LOCK_VALUE)}
                 >
                   {t("lockValueRecommended")}
@@ -62,6 +84,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
                 <Button
                   variant="secondary"
                   size="xs"
+                  disabled={isPending}
                   onClick={() => {
                     setLockTimeValue(RECOMMENDED_LOCK_TIME_VALUE);
                     setLockTimeUnit(RECOMMENDED_LOCK_TIME_UNIT);
@@ -79,8 +102,18 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
             </div>
 
             {/* TAR settings action */}
-            <Button size="lg" className="w-full rounded-xl">
-              {t("saveButton")}
+            {!isConfigured && (
+              <p className="text-muted-foreground text-sm">
+                {t("notConfigured")}
+              </p>
+            )}
+            <Button
+              size="lg"
+              className="w-full rounded-xl"
+              disabled={!isConfigured || isPending}
+              onClick={handleSave}
+            >
+              {isPending ? t("savingButton") : t("saveButton")}
             </Button>
           </div>
         </Drawer.Content>

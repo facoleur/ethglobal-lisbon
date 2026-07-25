@@ -64,6 +64,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
         const nextSession = await restoreKernelSession(
           credentialId,
           publicKey as `0x${string}`,
+          accountAddress as `0x${string}`,
         );
         setSession(nextSession);
         setStatus("connected");

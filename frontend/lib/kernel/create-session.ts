@@ -2,7 +2,7 @@ import { toWebAuthnKey, WebAuthnMode } from "@zerodev/webauthn-key";
 import { createSmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { concatHex, http, toHex, type Hex } from "viem";
+import { concatHex, http, toHex, type Address, type Hex } from "viem";
 import { toWebAuthnAccount } from "viem/account-abstraction";
 import {
   chain,
@@ -10,6 +10,7 @@ import {
   getBrowserWalletConfig,
   kernelVersion,
   publicClient,
+  webAuthnValidatorAddress,
 } from "@/lib/kernel/config";
 
 export type PasskeyMode = "register" | "login";
@@ -37,11 +38,13 @@ export async function createKernelSession(
     rpId,
   });
 
+  // Create the counterfactual Kernel account controlled by this passkey.
   const account = await toKernelSmartAccount({
     client: publicClient,
     entryPoint,
     version: kernelVersion,
     owners: [owner],
+    validatorAddress: webAuthnValidatorAddress,
   });
 
   const pimlicoClient = createPimlicoClient({
@@ -73,6 +76,7 @@ export async function createKernelSession(
 export async function restoreKernelSession(
   credentialId: string,
   publicKey: Hex,
+  accountAddress: Address,
 ) {
   const { pimlicoUrl, rpId } = getBrowserWalletConfig();
 
@@ -81,11 +85,14 @@ export async function restoreKernelSession(
     rpId,
   });
 
+  // Rebuild the deployed account at its persisted address.
   const account = await toKernelSmartAccount({
     client: publicClient,
     entryPoint,
     version: kernelVersion,
     owners: [owner],
+    validatorAddress: webAuthnValidatorAddress,
+    address: accountAddress,
   });
 
   const pimlicoClient = createPimlicoClient({

@@ -42,7 +42,13 @@
         "lockTime": "Lock Time",
         "lockTimePlaceholder": "7 days",
         "lockTimeRecommended": "Recommended",
-        "saveButton": "Save"
+        "days": "Days",
+        "weeks": "Weeks",
+        "months": "Months",
+        "saveButton": "Save",
+        "savingButton": "Saving…",
+        "saveSuccess": "TAR settings saved.",
+        "notConfigured": "TAR will be available once the recovery contract is deployed."
       },
       "RemoveAccountDrawer": {
         "title": "Remove Account",
