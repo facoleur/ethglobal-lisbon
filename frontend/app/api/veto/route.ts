@@ -151,11 +151,17 @@ export async function POST(request: Request): Promise<Response> {
       reverted instanceof ContractFunctionRevertedError
         ? reverted.data?.errorName
         : undefined;
+    const reason =
+      reverted instanceof ContractFunctionRevertedError
+        ? reverted.shortMessage
+        : cause instanceof BaseError
+          ? cause.shortMessage
+          : undefined;
     console.error("Veto relayer rejected a request", {
       cause: code ?? (cause instanceof Error ? cause.name : "UnknownError"),
     });
     return Response.json(
-      { code, error: "Veto request was rejected." },
+      { code, error: "Veto request was rejected.", reason },
       { status: 400 },
     );
   }

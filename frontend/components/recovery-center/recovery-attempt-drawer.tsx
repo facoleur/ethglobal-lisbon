@@ -49,6 +49,7 @@ export function RecoveryAttemptDrawer({
   const [pendingAction, setPendingAction] = useState<
     "veto" | "acknowledge" | null
   >(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!attempt) return;
@@ -69,6 +70,7 @@ export function RecoveryAttemptDrawer({
   async function resolve(action: "veto" | "acknowledge") {
     haptic(action === "veto" ? "heavy" : "medium");
     setPendingAction(action);
+    setActionError(null);
     try {
       if (action === "veto" && tarRecoveryExecutorV2Address) {
         if (currentAttempt.role === "owner") {
@@ -99,8 +101,11 @@ export function RecoveryAttemptDrawer({
       } else if (error instanceof WatchTowerProofGenerationError) {
         message = t("proofGenerationFailed");
       } else if (error instanceof VetoContractError) {
-        message = t("contractRejected", { code: error.code ?? "unknown" });
+        message = t("contractRejected", {
+          reason: error.code ?? error.message,
+        });
       }
+      setActionError(message);
       toast.error(message);
     } finally {
       setPendingAction(null);
@@ -180,6 +185,9 @@ export function RecoveryAttemptDrawer({
               ? t("allowingButton")
               : t("allowButton")}
           </Button>
+        )}
+        {actionError && (
+          <p className="text-destructive text-center text-sm">{actionError}</p>
         )}
       </div>
     </BottomSheet>

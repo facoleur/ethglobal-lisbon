@@ -123,7 +123,7 @@
         "relayerUnavailable": "The veto relayer is not configured.",
         "identityNotInGroup": "This passkey identity is not in the active defense group.",
         "proofGenerationFailed": "The Semaphore proof could not be generated.",
-        "contractRejected": "The contract rejected the veto ({code}).",
+        "contractRejected": "The contract rejected the veto: {reason}.",
         "allowSuccess": "Recovery attempt acknowledged."
       },
       "EnrollmentQrScanner": {
