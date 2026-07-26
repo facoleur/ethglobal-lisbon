@@ -1,83 +1,69 @@
 import { getAddress, type Address } from "viem";
+import type { WatchTowerEnrollment } from "@/lib/watch-tower-enrollment";
 
-export const MAX_WATCH_TOWERS = 16;
+export const DEFENSE_GROUP_SIZE = 16;
+export const MAX_WATCH_TOWERS = DEFENSE_GROUP_SIZE - 1;
 
 export type WatchTower = {
+  commitments: string[];
+  createdAt: number;
   id: string;
   label: string;
-  secret: string;
-  createdAt: number;
+  nextCommitmentIndex: number;
 };
 
 export type WatchedWallet = {
+  address: Address;
+  chainId: number;
+  createdAt: number;
+  credentialId: string;
   id: string;
   label: string;
-  address: Address;
-  secret: string;
-  createdAt: number;
-};
-
-type AddWatchTowerInput = {
-  label: string;
-  secret: string;
+  lastKnownEpoch: number | null;
+  relationshipId: string;
 };
 
 type CreateWatchedWalletInput = {
-  label: string;
   address: Address;
+  chainId: number;
+  credentialId: string;
+  label: string;
+  relationshipId: string;
 };
 
-function wait(duration: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, duration));
+export function maskWatchTowerCommitment(commitment: string): string {
+  if (commitment.length <= 12) return commitment;
+  return `${commitment.slice(0, 6)}…${commitment.slice(-4)}`;
 }
 
-function createMockSecret(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return `0x${Array.from(bytes, (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("")}`;
-}
-
-export function maskWatchTowerSecret(secret: string): string {
-  if (secret.length <= 12) return "••••••••";
-  return `${secret.slice(0, 6)}…${secret.slice(-4)}`;
-}
-
-export async function simulateAddWatchTower({
-  label,
-  secret,
-}: AddWatchTowerInput): Promise<WatchTower> {
-  await wait(650);
+export function createWatchTower(
+  label: string,
+  enrollment: WatchTowerEnrollment,
+): WatchTower {
   return {
-    id: crypto.randomUUID(),
-    label: label.trim(),
-    secret: secret.trim(),
+    commitments: enrollment.commitments,
     createdAt: Date.now(),
+    id: enrollment.relationshipId,
+    label: label.trim(),
+    nextCommitmentIndex: 0,
   };
 }
 
-export async function simulateRemoveWatchTower(): Promise<void> {
-  await wait(500);
-}
-
-export async function simulateCreateWatchedWallet({
-  label,
+export function createWatchedWallet({
   address,
-}: CreateWatchedWalletInput): Promise<WatchedWallet> {
-  await wait(650);
+  chainId,
+  credentialId,
+  label,
+  relationshipId,
+}: CreateWatchedWalletInput): WatchedWallet {
   return {
-    id: crypto.randomUUID(),
-    label: label.trim(),
     address: getAddress(address),
-    secret: createMockSecret(),
+    chainId,
     createdAt: Date.now(),
+    credentialId,
+    id: relationshipId,
+    label: label.trim(),
+    lastKnownEpoch: null,
+    relationshipId,
   };
-}
-
-export async function simulateActivateWatchedWallet(): Promise<void> {
-  await wait(500);
-}
-
-export async function simulateStopWatchingWallet(): Promise<void> {
-  await wait(500);
 }

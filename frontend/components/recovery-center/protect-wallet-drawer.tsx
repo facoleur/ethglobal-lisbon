@@ -5,23 +5,35 @@ import { useTranslations } from "next-intl";
 import { ScanLine } from "lucide-react";
 import { getAddress, isAddress } from "viem";
 import { toast } from "sonner";
-import { QrCode } from "@/components/receive/qr-code";
 import { AccountAvatar } from "@/components/ui/account-avatar";
+import { AnimatedQrCode } from "@/components/ui/animated-qr-code";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/ui/qr-scanner";
+import { chain, getBrowserPasskeyRpId } from "@/lib/kernel/config";
 import { truncateAddress } from "@/lib/recovery";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
+import { useWalletStore } from "@/lib/store/wallet";
 import {
-  simulateActivateWatchedWallet,
-  simulateCreateWatchedWallet,
-  type WatchedWallet,
-} from "@/lib/watch-towers";
+  createWatchTowerRelationshipId,
+  deriveWatchTowerCommitments,
+  PasskeyPrfUnavailableError,
+} from "@/lib/watch-tower-identity";
+import {
+  createWatchTowerEnrollmentFrames,
+  WATCH_TOWER_ENROLLMENT_VERSION,
+} from "@/lib/watch-tower-enrollment";
+import { createWatchedWallet, type WatchedWallet } from "@/lib/watch-towers";
 
 type ProtectWalletDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+};
+
+type PendingEnrollment = {
+  frames: string[];
+  wallet: WatchedWallet;
 };
 
 export function ProtectWalletDrawer({
@@ -31,14 +43,13 @@ export function ProtectWalletDrawer({
   const t = useTranslations("App.Recovery.ProtectWalletDrawer");
   const tCommon = useTranslations("Common");
   const { watchedWallets, addWatchedWallet } = useWatchTowerStore();
+  const credentialId = useWalletStore((state) => state.credentialId);
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [pendingWallet, setPendingWallet] = useState<WatchedWallet | null>(
-    null,
-  );
+  const [pendingEnrollment, setPendingEnrollment] =
+    useState<PendingEnrollment | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isActivating, setIsActivating] = useState(false);
 
   const validAddress = isAddress(address);
   const labelValid = label.trim().length > 0;
@@ -49,45 +60,61 @@ export function ProtectWalletDrawer({
   function reset() {
     setLabel("");
     setAddress("");
-    setPendingWallet(null);
+    setPendingEnrollment(null);
     setScannerOpen(false);
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && (isGenerating || isActivating)) return;
+    if (!nextOpen && isGenerating) return;
     if (!nextOpen) reset();
     onOpenChange(nextOpen);
   }
 
   async function handleGenerate() {
-    if (!validAddress || !labelValid || isDuplicate) return;
+    if (!validAddress || !labelValid || isDuplicate || !credentialId) return;
     setIsGenerating(true);
     try {
-      const wallet = await simulateCreateWatchedWallet({
-        label,
-        address: getAddress(address),
+      const protectedWallet = getAddress(address);
+      const relationshipId = createWatchTowerRelationshipId();
+      const commitments = await deriveWatchTowerCommitments({
+        chainId: chain.id,
+        credentialId,
+        protectedWallet,
+        relationshipId,
+        rpId: getBrowserPasskeyRpId(),
       });
-      setPendingWallet(wallet);
-    } catch {
-      toast.error(tCommon("error"));
+      const wallet = createWatchedWallet({
+        address: protectedWallet,
+        chainId: chain.id,
+        credentialId,
+        label,
+        relationshipId,
+      });
+      const frames = await createWatchTowerEnrollmentFrames({
+        chainId: chain.id,
+        commitments,
+        createdAt: wallet.createdAt,
+        protectedWallet,
+        relationshipId,
+        version: WATCH_TOWER_ENROLLMENT_VERSION,
+      });
+      setPendingEnrollment({ frames, wallet });
+    } catch (error) {
+      toast.error(
+        error instanceof PasskeyPrfUnavailableError
+          ? t("prfUnavailable")
+          : tCommon("error"),
+      );
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function handleActivate() {
-    if (!pendingWallet) return;
-    setIsActivating(true);
-    try {
-      await simulateActivateWatchedWallet();
-      addWatchedWallet(pendingWallet);
-      toast.success(t("activateSuccess"));
-      handleOpenChange(false);
-    } catch {
-      toast.error(tCommon("error"));
-    } finally {
-      setIsActivating(false);
-    }
+  function handleActivate() {
+    if (!pendingEnrollment) return;
+    addWatchedWallet(pendingEnrollment.wallet);
+    toast.success(t("activateSuccess"));
+    handleOpenChange(false);
   }
 
   return (
@@ -98,43 +125,41 @@ export function ProtectWalletDrawer({
             <h1 className="text-lg font-semibold">{t("title")}</h1>
           </div>
 
-          {pendingWallet ? (
+          {pendingEnrollment ? (
             <div className="flex flex-1 flex-col">
               <div className="flex flex-col items-center gap-5 text-center">
                 <div>
                   <h2 className="text-xl font-semibold">{t("qrTitle")}</h2>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    {t("qrSubtitle", { wallet: pendingWallet.label })}
+                    {t("qrSubtitle", {
+                      wallet: pendingEnrollment.wallet.label,
+                    })}
                   </p>
                 </div>
 
                 <div className="rounded-3xl bg-white p-4">
-                  <QrCode value={pendingWallet.secret} size={220} />
+                  <AnimatedQrCode frames={pendingEnrollment.frames} />
                 </div>
 
                 <div className="flex w-full max-w-full items-center gap-3 overflow-hidden rounded-2xl bg-card p-4 text-left">
-                  <AccountAvatar address={pendingWallet.address} size={40} />
+                  <AccountAvatar
+                    address={pendingEnrollment.wallet.address}
+                    size={40}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
-                      {pendingWallet.label}
+                      {pendingEnrollment.wallet.label}
                     </p>
                     <p className="text-muted-foreground block max-w-full truncate text-sm">
-                      {truncateAddress(pendingWallet.address)}
+                      {truncateAddress(pendingEnrollment.wallet.address)}
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="mt-auto pt-8">
-                <Button
-                  size="lg"
-                  className="w-full"
-                  onClick={handleActivate}
-                  disabled={isActivating}
-                >
-                  {isActivating
-                    ? t("activatingButton")
-                    : t("ownerScannedButton")}
+                <Button size="lg" className="w-full" onClick={handleActivate}>
+                  {t("ownerScannedButton")}
                 </Button>
               </div>
             </div>
@@ -195,7 +220,11 @@ export function ProtectWalletDrawer({
                   className="w-full"
                   onClick={handleGenerate}
                   disabled={
-                    !validAddress || !labelValid || isDuplicate || isGenerating
+                    !validAddress ||
+                    !labelValid ||
+                    isDuplicate ||
+                    isGenerating ||
+                    !credentialId
                   }
                 >
                   {isGenerating ? t("generatingButton") : t("generateButton")}

@@ -35,6 +35,16 @@ export const publicClient = createPublicClient({
   transport: http(sepoliaRpcUrl),
 });
 
+export function getBrowserPasskeyRpId(): string {
+  if (typeof window === "undefined") {
+    throw new Error("Passkey authentication is only available in the browser.");
+  }
+
+  return (
+    process.env.NEXT_PUBLIC_PASSKEY_RP_ID?.trim() || window.location.hostname
+  );
+}
+
 export function getBrowserWalletConfig() {
   if (typeof window === "undefined") {
     throw new Error("Passkey authentication is only available in the browser.");
@@ -62,7 +72,6 @@ export function getBrowserWalletConfig() {
     pimlicoUrl:
       configuredPimlicoUrl ||
       `https://api.pimlico.io/v2/${chain.id}/rpc?apikey=${pimlicoApiKey}`,
-    rpId:
-      process.env.NEXT_PUBLIC_PASSKEY_RP_ID?.trim() || window.location.hostname,
+    rpId: getBrowserPasskeyRpId(),
   };
 }

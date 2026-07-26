@@ -3,18 +3,21 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, ScanLine, ShieldCheck, Trash2, X } from "lucide-react";
+import { getAddress } from "viem";
 import { toast } from "sonner";
+import { EnrollmentQrScanner } from "@/components/recovery-center/enrollment-qr-scanner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
-import { QrScanner } from "@/components/ui/qr-scanner";
+import { useKernelAccount } from "@/hooks/use-kernel";
+import { chain } from "@/lib/kernel/config";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
+import type { WatchTowerEnrollment } from "@/lib/watch-tower-enrollment";
 import {
-  maskWatchTowerSecret,
+  createWatchTower,
+  maskWatchTowerCommitment,
   MAX_WATCH_TOWERS,
-  simulateAddWatchTower,
-  simulateRemoveWatchTower,
   type WatchTower,
 } from "@/lib/watch-towers";
 
@@ -29,76 +32,68 @@ export function WatchTowersDrawer({
 }: WatchTowersDrawerProps) {
   const t = useTranslations("App.Recovery.WatchTowersDrawer");
   const tCommon = useTranslations("Common");
+  const { address: ownerAddress } = useKernelAccount();
   const { watchTowers, hasHydrated, addWatchTower, removeWatchTower } =
     useWatchTowerStore();
   const [addOpen, setAddOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [secret, setSecret] = useState("");
+  const [enrollment, setEnrollment] = useState<WatchTowerEnrollment | null>(
+    null,
+  );
   const [label, setLabel] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
   const [towerToRemove, setTowerToRemove] = useState<WatchTower | null>(null);
-  const [isRemoving, setIsRemoving] = useState(false);
 
   const isAtLimit = watchTowers.length >= MAX_WATCH_TOWERS;
   const labelValid = label.trim().length > 0;
-  const normalizedSecret = secret.trim();
-  const secretValid = normalizedSecret.length > 0;
-  const duplicateSecret = watchTowers.some(
-    (tower) => tower.secret === normalizedSecret,
-  );
+  const duplicateEnrollment =
+    enrollment !== null &&
+    watchTowers.some((tower) => tower.id === enrollment.relationshipId);
 
   function resetAddFlow() {
     setAddOpen(false);
-    setSecret("");
+    setEnrollment(null);
     setLabel("");
   }
 
-  function handleDetected(value: string) {
-    const detectedSecret = value.trim();
+  function handleEnrollment(nextEnrollment: WatchTowerEnrollment) {
     setScannerOpen(false);
 
-    if (!detectedSecret) {
-      toast.error(t("invalidSecret"));
+    if (nextEnrollment.chainId !== chain.id) {
+      toast.error(t("wrongNetwork"));
       return;
     }
-    setSecret(detectedSecret);
-  }
-
-  async function handleAdd() {
-    if (!secretValid || !labelValid || duplicateSecret || isAtLimit) return;
-    setIsAdding(true);
-    try {
-      const watchTower = await simulateAddWatchTower({
-        label,
-        secret: normalizedSecret,
-      });
-      addWatchTower(watchTower);
-      toast.success(t("addSuccess"));
-      resetAddFlow();
-    } catch {
-      toast.error(tCommon("error"));
-    } finally {
-      setIsAdding(false);
+    if (
+      !ownerAddress ||
+      getAddress(nextEnrollment.protectedWallet) !== getAddress(ownerAddress)
+    ) {
+      toast.error(t("wrongWallet"));
+      return;
     }
+    if (
+      watchTowers.some((tower) => tower.id === nextEnrollment.relationshipId)
+    ) {
+      toast.error(t("duplicateEnrollment"));
+      return;
+    }
+
+    setEnrollment(nextEnrollment);
   }
 
-  async function handleRemove() {
+  function handleAdd() {
+    if (!enrollment || !labelValid || duplicateEnrollment || isAtLimit) return;
+    addWatchTower(createWatchTower(label, enrollment));
+    toast.success(t("addSuccess"));
+    resetAddFlow();
+  }
+
+  function handleRemove() {
     if (!towerToRemove) return;
-    setIsRemoving(true);
-    try {
-      await simulateRemoveWatchTower();
-      removeWatchTower(towerToRemove.id);
-      toast.success(t("removeSuccess"));
-      setTowerToRemove(null);
-    } catch {
-      toast.error(tCommon("error"));
-    } finally {
-      setIsRemoving(false);
-    }
+    removeWatchTower(towerToRemove.id);
+    toast.success(t("removeSuccess"));
+    setTowerToRemove(null);
   }
 
   function handleDrawerChange(nextOpen: boolean) {
-    if (!nextOpen && (isAdding || isRemoving)) return;
     if (!nextOpen) {
       setScannerOpen(false);
       resetAddFlow();
@@ -158,7 +153,7 @@ export function WatchTowersDrawer({
                       {tower.label}
                     </p>
                     <p className="text-muted-foreground truncate text-sm">
-                      {maskWatchTowerSecret(tower.secret)}
+                      {maskWatchTowerCommitment(tower.commitments[0])}
                     </p>
                   </div>
                   <button
@@ -189,8 +184,8 @@ export function WatchTowersDrawer({
       </FullscreenSheet>
 
       {scannerOpen && (
-        <QrScanner
-          onDetect={handleDetected}
+        <EnrollmentQrScanner
+          onComplete={handleEnrollment}
           onClose={() => setScannerOpen(false)}
         />
       )}
@@ -198,7 +193,7 @@ export function WatchTowersDrawer({
       <BottomSheet
         open={addOpen}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen && !isAdding) resetAddFlow();
+          if (!nextOpen) resetAddFlow();
         }}
         title={t("labelTitle")}
       >
@@ -213,49 +208,47 @@ export function WatchTowersDrawer({
             autoFocus
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">{t("secretLabel")}</label>
-          <div className="relative">
-            <Input
-              value={secret}
-              onChange={(event) => setSecret(event.target.value)}
-              placeholder={t("secretPlaceholder")}
-              className="pr-12"
-              aria-invalid={duplicateSecret}
-            />
-            <button
-              type="button"
-              onClick={() => setScannerOpen(true)}
-              aria-label={t("scanSecretLabel")}
-              className="text-muted-foreground absolute top-1/2 right-4 -translate-y-1/2"
-            >
-              <ScanLine className="size-5" />
-            </button>
+
+        {enrollment ? (
+          <div className="flex items-center gap-3 rounded-2xl bg-secondary p-4">
+            <ShieldCheck className="size-6 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-medium">{t("enrollmentReady")}</p>
+              <p className="text-muted-foreground truncate text-sm">
+                {t("commitmentCount", {
+                  count: enrollment.commitments.length,
+                })}
+              </p>
+            </div>
           </div>
-          {duplicateSecret && (
-            <p className="text-destructive text-sm">{t("duplicateSecret")}</p>
-          )}
-        </div>
+        ) : (
+          <Button
+            size="lg"
+            variant="secondary"
+            className="w-full"
+            onClick={() => setScannerOpen(true)}
+          >
+            <ScanLine className="size-5" />
+            {t("scanEnrollment")}
+          </Button>
+        )}
+
         <Button
           size="lg"
           className="w-full"
           onClick={handleAdd}
           disabled={
-            !labelValid ||
-            !secretValid ||
-            duplicateSecret ||
-            isAdding ||
-            isAtLimit
+            !labelValid || !enrollment || duplicateEnrollment || isAtLimit
           }
         >
-          {isAdding ? t("addingButton") : t("confirmAddButton")}
+          {t("confirmAddButton")}
         </Button>
       </BottomSheet>
 
       <BottomSheet
         open={towerToRemove !== null}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen && !isRemoving) setTowerToRemove(null);
+          if (!nextOpen) setTowerToRemove(null);
         }}
         title={t("removeTitle")}
       >
@@ -268,16 +261,14 @@ export function WatchTowersDrawer({
             variant="destructive"
             className="w-full"
             onClick={handleRemove}
-            disabled={isRemoving}
           >
-            {isRemoving ? t("removingButton") : t("confirmRemoveButton")}
+            {t("confirmRemoveButton")}
           </Button>
           <Button
             size="lg"
             variant="secondary"
             className="w-full"
             onClick={() => setTowerToRemove(null)}
-            disabled={isRemoving}
           >
             {tCommon("cancel")}
           </Button>

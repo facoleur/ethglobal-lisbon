@@ -33,7 +33,7 @@ export const useWatchTowerStore = create<WatchTowerState>()(
       addWatchTower: (watchTower) =>
         set((state) => {
           const alreadyExists = state.watchTowers.some(
-            (item) => item.secret === watchTower.secret,
+            (item) => item.id === watchTower.id,
           );
           if (alreadyExists || state.watchTowers.length >= MAX_WATCH_TOWERS) {
             return state;
@@ -59,7 +59,12 @@ export const useWatchTowerStore = create<WatchTowerState>()(
     }),
     {
       name: "tar-watch-towers",
+      version: 1,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persistedState, version): PersistedWatchTowerState => {
+        if (version === 1) return persistedState as PersistedWatchTowerState;
+        return { watchTowers: [], watchedWallets: [] };
+      },
       partialize: (state): PersistedWatchTowerState => ({
         watchTowers: state.watchTowers,
         watchedWallets: state.watchedWallets,
