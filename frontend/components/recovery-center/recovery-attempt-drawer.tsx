@@ -111,7 +111,7 @@ export function RecoveryAttemptDrawer({
         </div>
         <Progress
           value={progress}
-          className="gap-0 [&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-black/[0.08] [&_[data-slot=progress-indicator]]:bg-foreground"
+          className="gap-0 [&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-black/[0.08]"
         />
       </div>
 

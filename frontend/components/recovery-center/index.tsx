@@ -42,6 +42,7 @@ export function RecoveryCenter() {
     hasHydrated: attemptsHydrated,
     addAttempt,
     removeAttempt,
+    purgeExpiredWatchTowerAttempts,
   } = useRecoveryCenterStore();
   const {
     watchTowers,
@@ -63,10 +64,18 @@ export function RecoveryCenter() {
   >(null);
 
   useEffect(() => {
+    if (attemptsHydrated) purgeExpiredWatchTowerAttempts(Date.now());
+  }, [attemptsHydrated, purgeExpiredWatchTowerAttempts]);
+
+  useEffect(() => {
     if (attempts.length === 0) return;
-    const interval = setInterval(() => setNow(Date.now()), 1_000);
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setNow(now);
+      purgeExpiredWatchTowerAttempts(now);
+    }, 1_000);
     return () => clearInterval(interval);
-  }, [attempts.length]);
+  }, [attempts.length, purgeExpiredWatchTowerAttempts]);
 
   const groups = groupRecoveryAttempts(attempts);
   const hasAttempts = attempts.length > 0;
@@ -130,7 +139,7 @@ export function RecoveryCenter() {
               {tCommon("loading")}
             </div>
           ) : !hasAttempts ? (
-            <div className="flex items-center gap-3 rounded-2xl bg-card p-4">
+            <div className="flex items-center gap-3 rounded-2xl bg-card/60 p-4">
               <CheckCircle2 className="size-6 shrink-0" />
               <div>
                 <p className="font-medium">{t("noAttemptsTitle")}</p>
@@ -140,7 +149,7 @@ export function RecoveryCenter() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
               <AttemptGroup
                 attempts={groups.owner}
                 now={now}
@@ -148,7 +157,6 @@ export function RecoveryCenter() {
                 onSelect={setSelectedAttempt}
               />
               <AttemptGroup
-                title={t("walletsIProtect")}
                 attempts={groups.watchTower}
                 now={now}
                 expiredLabel={t("expired")}

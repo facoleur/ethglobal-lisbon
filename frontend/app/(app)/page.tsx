@@ -4,11 +4,13 @@ import { ReceiveDrawer } from "@/components/receive/receive-drawer";
 import { RecoverySummaryCard } from "@/components/recovery-center/recovery-summary-card";
 import { SendDrawer } from "@/components/send/send-drawer";
 import { SetupBanner } from "@/components/setup-banner";
+import { TarDrawer } from "@/components/settings/tar-drawer";
 import { AccountAvatar } from "@/components/ui/account-avatar";
 import { ActionButton } from "@/components/ui/action-button";
 import { useKernelAccount, useKernelBalance } from "@/hooks/use-kernel";
 import { truncateAddress } from "@/lib/recovery";
 import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
+import { useWalletStore } from "@/lib/store/wallet";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { ArrowDown, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -21,19 +23,18 @@ export default function HomePage() {
   const router = useRouter();
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
+  const [tarOpen, setTarOpen] = useState(false);
 
   const { address } = useKernelAccount();
   const { balance } = useKernelBalance();
   const { attempts, hasHydrated: attemptsHydrated } = useRecoveryCenterStore();
   const { watchTowers, hasHydrated: watchTowersHydrated } =
     useWatchTowerStore();
+  const { setSetupComplete } = useWalletStore();
 
   return (
     <>
       <div className="flex flex-col gap-8">
-        {/* setup banner */}
-        <SetupBanner />
-
         {/* account section */}
         {address && (
           <div className="flex items-center gap-3">
@@ -67,6 +68,9 @@ export default function HomePage() {
           <ActionButton icon={ArrowLeftRight} label={t("swapButton")} />
         </div>
 
+        {/* setup banner — shown below action buttons until setup is complete */}
+        <SetupBanner onAction={() => setTarOpen(true)} />
+
         {/* recovery status */}
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("recoveryTitle")}</h2>
@@ -88,6 +92,11 @@ export default function HomePage() {
 
       <SendDrawer open={sendOpen} onOpenChange={setSendOpen} />
       <ReceiveDrawer open={receiveOpen} onOpenChange={setReceiveOpen} />
+      <TarDrawer
+        open={tarOpen}
+        onOpenChange={setTarOpen}
+        onSuccess={setSetupComplete}
+      />
     </>
   );
 }

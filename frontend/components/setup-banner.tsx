@@ -1,37 +1,37 @@
 "use client";
 
-import { TarDrawer } from "@/components/settings/tar-drawer";
 import { useWalletStore } from "@/lib/store/wallet";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
-export function SetupBanner() {
+type SetupBannerProps = {
+  onAction: () => void;
+};
+
+export function SetupBanner({ onAction }: SetupBannerProps) {
   const t = useTranslations("App.SetupBanner");
-  const { isSetupComplete, hasHydrated, setSetupComplete } = useWalletStore();
-  const [tarOpen, setTarOpen] = useState(false);
+  const { isSetupComplete, hasHydrated } = useWalletStore();
 
   if (!hasHydrated || isSetupComplete) return null;
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setTarOpen(true)}
-        className="flex w-full items-center gap-3 rounded-2xl bg-primary p-4 text-left text-primary-foreground"
-      >
-        <Sparkles className="size-6 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">{t("title")}</p>
-          <p className="text-sm opacity-80">{t("subtitle")}</p>
+    <button
+      type="button"
+      onClick={onAction}
+      className="flex w-full flex-row gap-3 rounded-2xl border border-border bg-card p-4 text-left"
+    >
+      <div className="flex  items-start justify-between gap-2">
+        <AlertTriangle className="size-5 shrink-0 text-yellow-500" />
+      </div>
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-semibold text-foreground">{t("title")}</p>
+          <span className="shrink-0 rounded-sm bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+            {t("badge")}
+          </span>
         </div>
-      </button>
-
-      <TarDrawer
-        open={tarOpen}
-        onOpenChange={setTarOpen}
-        onSuccess={setSetupComplete}
-      />
-    </>
+        <p className="text-muted-foreground mt-0.5 text-sm">{t("subtitle")}</p>
+      </div>
+    </button>
   );
 }

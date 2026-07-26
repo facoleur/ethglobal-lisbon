@@ -65,6 +65,7 @@
   },
   "App": {
     "SetupBanner": {
+      "badge": "Required",
       "title": "Finish setting up your wallet",
       "subtitle": "Configure your lock time and lock value to activate recovery protection."
     },
