@@ -114,7 +114,7 @@
 
 **Visual:** Fond noir. Tagline en grand. En dessous, stack technique en petit (discret).
 
-**Text on slide:**
+**Text on slide : **
 
 > # TAR
 > *Lose your phone. Keep your life.*
