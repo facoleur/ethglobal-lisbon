@@ -17,7 +17,11 @@ import {
 } from "@/lib/recovery-center";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { useWalletStore } from "@/lib/store/wallet";
-import { vetoAsOwner, vetoAsWatchTower } from "@/lib/watch-tower-policy";
+import {
+  vetoAsOwner,
+  vetoAsWatchTower,
+  VetoRelayerUnavailableError,
+} from "@/lib/watch-tower-policy";
 
 type RecoveryAttemptDrawerProps = {
   attempt: RecoveryAttempt | null;
@@ -31,7 +35,6 @@ export function RecoveryAttemptDrawer({
   onResolved,
 }: RecoveryAttemptDrawerProps) {
   const t = useTranslations("App.Recovery.AttemptDrawer");
-  const tCommon = useTranslations("Common");
   const credentialId = useWalletStore((state) => state.credentialId);
   const watchedWallets = useWatchTowerStore((state) => state.watchedWallets);
   const setWatchedWalletEpoch = useWatchTowerStore(
@@ -82,8 +85,12 @@ export function RecoveryAttemptDrawer({
       onResolved(currentAttempt.id);
       toast.success(action === "veto" ? t("vetoSuccess") : t("allowSuccess"));
       onClose();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (error) {
+      toast.error(
+        error instanceof VetoRelayerUnavailableError
+          ? t("relayerUnavailable")
+          : t("vetoFailed"),
+      );
     } finally {
       setPendingAction(null);
     }

@@ -119,6 +119,8 @@
         "allowButton": "I initiated this",
         "allowingButton": "Confirming…",
         "vetoSuccess": "Recovery attempt vetoed.",
+        "vetoFailed": "The veto could not be submitted.",
+        "relayerUnavailable": "The veto relayer is not configured.",
         "allowSuccess": "Recovery attempt acknowledged."
       },
       "EnrollmentQrScanner": {

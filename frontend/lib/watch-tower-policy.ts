@@ -23,6 +23,21 @@ export type DefensePolicy = {
   merkleTreeRoot: bigint;
 };
 
+export class VetoRelayerUnavailableError extends Error {
+  constructor() {
+    super("The veto relayer is not configured.");
+    this.name = "VetoRelayerUnavailableError";
+  }
+}
+
+async function requireVetoRelayer(): Promise<void> {
+  const response = await fetch("/api/veto", { cache: "no-store" });
+  if (!response.ok) throw new VetoRelayerUnavailableError();
+
+  const status = (await response.json()) as { configured?: boolean };
+  if (!status.configured) throw new VetoRelayerUnavailableError();
+}
+
 export async function getDefensePolicy(
   protectedWallet: Address,
 ): Promise<DefensePolicy> {
@@ -163,6 +178,7 @@ async function submitVeto(
 }
 
 export async function vetoAsWatchTower(wallet: WatchedWallet) {
+  await requireVetoRelayer();
   const prepared = await prepareWatchTowerVeto(wallet);
   const transactionHash = await submitVeto(wallet.address, prepared.proofAbi);
   return { ...prepared, transactionHash };
@@ -172,6 +188,7 @@ export async function vetoAsOwner(
   protectedWallet: Address,
   credentialId: string,
 ) {
+  await requireVetoRelayer();
   const prepared = await prepareOwnerVeto(protectedWallet, credentialId);
   const transactionHash = await submitVeto(protectedWallet, prepared.proofAbi);
   return { ...prepared, transactionHash };

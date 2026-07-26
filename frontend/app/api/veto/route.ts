@@ -88,21 +88,29 @@ function parseRequest(value: unknown): {
   return { addressToRecover, proof };
 }
 
-export async function POST(request: Request): Promise<Response> {
+function getRelayerPrivateKey(): Hex | null {
   const privateKey = process.env.TAR_RELAYER_PRIVATE_KEY?.trim();
+  return privateKey && /^0x[0-9a-fA-F]{64}$/.test(privateKey)
+    ? (privateKey as Hex)
+    : null;
+}
+
+export function GET(): Response {
+  const privateKey = getRelayerPrivateKey();
+  return Response.json({
+    configured: tarRecoveryExecutorV2Address !== null && privateKey !== null,
+    address: privateKey ? privateKeyToAccount(privateKey).address : null,
+  });
+}
+
+export async function POST(request: Request): Promise<Response> {
+  const privateKey = getRelayerPrivateKey();
   if (!tarRecoveryExecutorV2Address || !privateKey) {
     return Response.json(
       { error: "Veto relayer is not configured." },
       { status: 503 },
     );
   }
-  if (!/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
-    return Response.json(
-      { error: "Veto relayer key is invalid." },
-      { status: 500 },
-    );
-  }
-
   try {
     const rawBody = await request.text();
     if (rawBody.length > 16_384) {
@@ -113,7 +121,7 @@ export async function POST(request: Request): Promise<Response> {
     }
     const { addressToRecover, proof } = parseRequest(JSON.parse(rawBody));
     const rpcUrl = process.env.SEPOLIA_RPC_URL?.trim() || sepoliaRpcUrl;
-    const account = privateKeyToAccount(privateKey as Hex);
+    const account = privateKeyToAccount(privateKey);
     const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
     const walletClient = createWalletClient({
       account,
