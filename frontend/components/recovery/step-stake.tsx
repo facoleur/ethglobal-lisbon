@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useBalance } from "wagmi";
 import { toast } from "sonner";
+import { CheckCircle2 } from "lucide-react";
+import { AccountAvatar } from "@/components/ui/account-avatar";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "@/components/receive/qr-code";
 import { useSubmitTarRecovery } from "@/hooks/use-tar-recovery";
@@ -116,6 +118,19 @@ export function StepStake() {
   }
 
   const isWorking = isCreatingPasskey || recoverySubmission.isPending;
+  const loadingLabel = isCreatingPasskey
+    ? t("creatingRecoveryPasskey")
+    : recoverySubmission.phase === "submitting-commitment"
+      ? t("submittingCommitment")
+      : recoverySubmission.phase === "confirming-commitment"
+        ? t("confirmingCommitment")
+        : recoverySubmission.phase === "waiting-reveal"
+          ? t("preparingReveal")
+          : recoverySubmission.phase === "submitting-reveal"
+            ? t("submittingReveal")
+            : recoverySubmission.phase === "confirming-reveal"
+              ? t("confirmingReveal")
+              : t("submittingRecovery");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -125,23 +140,19 @@ export function StepStake() {
           <p className="text-muted-foreground text-sm">{t("step2Subtitle")}</p>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl bg-black/[0.04] p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">
+        <div className="flex items-center gap-3">
+          {targetAccount && <AccountAvatar address={targetAccount} size={40} />}
+          <div className="min-w-0">
+            <p className="text-muted-foreground text-xs">
               {t("targetAddressLabel")}
-            </span>
-            <span className="text-sm font-medium">
+            </p>
+            <p className="font-medium">
               {targetAccount ? truncateAddress(targetAccount) : "—"}
-            </span>
+            </p>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">
-              {t("broadcasterAddressLabel")}
-            </span>
-            <span className="text-sm font-medium">
-              {broadcasterAddress ? truncateAddress(broadcasterAddress) : "—"}
-            </span>
-          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-2xl bg-black/[0.04] p-4">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">
               {t("depositLabel")}
@@ -158,7 +169,7 @@ export function StepStake() {
               {formatEth(BROADCASTER_GAS_BUFFER)} ETH
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="border-border flex items-center justify-between border-t pt-3">
             <span className="text-muted-foreground text-sm">
               {t("totalLabel")}
             </span>
@@ -176,36 +187,35 @@ export function StepStake() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2">
-          <QrCode value={eip681Uri} />
-          <p className="text-muted-foreground text-center text-xs">
-            {t("qrCaption")}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-2 w-full rounded-xl"
-            onClick={handleCopyBroadcasterAddress}
-            disabled={!broadcasterAddress}
-          >
-            {t("copyBroadcasterAddress")}
-          </Button>
-        </div>
-        <p
-          className={
-            hasPassedFunding
-              ? "text-center text-sm font-medium text-foreground"
-              : "text-muted-foreground text-center text-sm"
-          }
-        >
-          {recoverySubmission.isPending
-            ? t("submittingRecovery")
-            : isCreatingPasskey
-              ? t("creatingRecoveryPasskey")
-              : hasPassedFunding
-                ? t("fundsReceived")
-                : t("waitingForFunds")}
-        </p>
+        {!hasPassedFunding ? (
+          <div className="flex flex-col items-center gap-2">
+            <QrCode value={eip681Uri} />
+            <p className="text-muted-foreground text-center text-xs">
+              {t("qrCaption")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 w-full rounded-xl"
+              onClick={handleCopyBroadcasterAddress}
+              disabled={!broadcasterAddress}
+            >
+              {t("copyBroadcasterAddress")}
+            </Button>
+          </div>
+        ) : (
+          !isWorking && (
+            <div className="flex items-center gap-3 rounded-2xl bg-card p-4">
+              <CheckCircle2 className="size-6 shrink-0" />
+              <div>
+                <p className="font-medium">{t("fundsReadyTitle")}</p>
+                <p className="text-muted-foreground text-sm">
+                  {t("fundsReadySubtitle")}
+                </p>
+              </div>
+            </div>
+          )
+        )}
       </div>
 
       <div className="mt-auto pt-8">
@@ -216,11 +226,7 @@ export function StepStake() {
             onClick={handleCreatePasskeyAndStart}
             disabled={isWorking}
             loading={isWorking}
-            loadingLabel={
-              recoverySubmission.isPending
-                ? t("submittingRecovery")
-                : t("creatingRecoveryPasskey")
-            }
+            loadingLabel={loadingLabel}
           >
             {t("startRecoveryButton")}
           </Button>

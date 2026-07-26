@@ -167,6 +167,18 @@ export function useTarRecoveryPreflight(accountAddress?: Address) {
     lockTime,
     revealTimestamp,
     canContinue: status === "ready" || status === "active",
+    needsSetup:
+      status === "unsupported-account" ||
+      status === "module-missing" ||
+      status === "validator-mismatch" ||
+      status === "config-missing",
+    refetch: async () => {
+      await Promise.all([
+        accountCode.refetch(),
+        recoveryCode.refetch(),
+        reads.refetch(),
+      ]);
+    },
   };
 }
 
@@ -290,6 +302,14 @@ export function useUpdateRecoveryParams() {
 
 export function useSubmitTarRecovery() {
   const [isPending, setIsPending] = useState(false);
+  const [phase, setPhase] = useState<
+    | "submitting-commitment"
+    | "confirming-commitment"
+    | "waiting-reveal"
+    | "submitting-reveal"
+    | "confirming-reveal"
+    | null
+  >(null);
   const [error, setError] = useState<Error | null>(null);
 
   const submit = async () => {
@@ -337,6 +357,7 @@ export function useSubmitTarRecovery() {
       if (commitBlock === null) {
         let hash = requestTxHash;
         if (!hash) {
+          setPhase("submitting-commitment");
           hash = await walletClient.sendTransaction({
             to: tarRecoveryExecutorAddress,
             data: encodeFunctionData({
@@ -348,6 +369,7 @@ export function useSubmitTarRecovery() {
           setRequestSubmitted(hash);
         }
 
+        setPhase("confirming-commitment");
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") {
           throw new Error("Recovery request reverted.");
@@ -356,6 +378,7 @@ export function useSubmitTarRecovery() {
         setCommitConfirmed(commitBlock);
       }
 
+      setPhase("waiting-reveal");
       await waitForCommitMaturity(commitBlock);
 
       const pendingCommitBlock = await publicClient.readContract({
@@ -377,6 +400,7 @@ export function useSubmitTarRecovery() {
 
       let hash = revealTxHash;
       if (!hash) {
+        setPhase("submitting-reveal");
         hash = await walletClient.sendTransaction({
           to: tarRecoveryExecutorAddress,
           data: encodeFunctionData({
@@ -395,6 +419,7 @@ export function useSubmitTarRecovery() {
         setRevealSubmitted(hash);
       }
 
+      setPhase("confirming-reveal");
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") {
         throw new Error("Recovery reveal reverted.");
@@ -419,10 +444,11 @@ export function useSubmitTarRecovery() {
       throw nextError;
     } finally {
       setIsPending(false);
+      setPhase(null);
     }
   };
 
-  return { submit, isPending, error };
+  return { submit, isPending, phase, error };
 }
 
 export function useFinalizeTarRecovery() {
@@ -437,7 +463,7 @@ export function useFinalizeTarRecovery() {
 
     const { targetAccount, broadcasterPrivateKey, setStatus } = recovery;
     if (!targetAccount || !broadcasterPrivateKey) {
-      throw new Error("Recovery finalizer data is incomplete.");
+      throw new Error("Recovery completion data is incomplete.");
     }
 
     setIsPending(true);

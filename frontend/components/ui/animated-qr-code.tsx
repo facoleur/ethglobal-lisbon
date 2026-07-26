@@ -32,7 +32,7 @@ export function AnimatedQrCode({
   return (
     <div className="flex flex-col items-center gap-2">
       <QrCode value={frames[activeFrameIndex]} size={size} />
-      <span className="text-xs font-medium text-black/60 tabular-nums">
+      <span className="text-muted-foreground text-xs font-medium tabular-nums">
         {activeFrameIndex + 1}/{frames.length}
       </span>
     </div>

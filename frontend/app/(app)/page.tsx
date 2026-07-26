@@ -8,9 +8,9 @@ import { TarDrawer } from "@/components/settings/tar-drawer";
 import { AccountAvatar } from "@/components/ui/account-avatar";
 import { ActionButton } from "@/components/ui/action-button";
 import { useKernelAccount, useKernelBalance } from "@/hooks/use-kernel";
+import { useTarRecoveryPreflight } from "@/hooks/use-tar-recovery";
 import { truncateAddress } from "@/lib/recovery";
 import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
-import { useWalletStore } from "@/lib/store/wallet";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { ArrowDown, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -27,10 +27,10 @@ export default function HomePage() {
 
   const { address } = useKernelAccount();
   const { balance } = useKernelBalance();
+  const recoverySetup = useTarRecoveryPreflight(address);
   const { attempts, hasHydrated: attemptsHydrated } = useRecoveryCenterStore();
   const { watchTowers, hasHydrated: watchTowersHydrated } =
     useWatchTowerStore();
-  const { setSetupComplete } = useWalletStore();
 
   return (
     <>
@@ -69,7 +69,10 @@ export default function HomePage() {
         </div>
 
         {/* setup banner — shown below action buttons until setup is complete */}
-        <SetupBanner onAction={() => setTarOpen(true)} />
+        <SetupBanner
+          visible={recoverySetup.needsSetup}
+          onAction={() => setTarOpen(true)}
+        />
 
         {/* recovery status */}
         <div className="flex flex-col gap-3">
@@ -99,7 +102,7 @@ export default function HomePage() {
       <TarDrawer
         open={tarOpen}
         onOpenChange={setTarOpen}
-        onSuccess={setSetupComplete}
+        onSuccess={recoverySetup.refetch}
       />
     </>
   );

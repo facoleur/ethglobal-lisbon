@@ -48,6 +48,16 @@ export function useLoginPasskey() {
   };
 }
 
+export function useRestoreRecoveredWallet() {
+  const { restoreRecoveredWallet, pendingMode, error } = useKernelContext();
+
+  return {
+    restore: restoreRecoveredWallet,
+    isPending: pendingMode === "login",
+    error,
+  };
+}
+
 export function useDisconnectKernel() {
   const { disconnect } = useKernelContext();
 
