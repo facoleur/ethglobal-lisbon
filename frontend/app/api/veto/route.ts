@@ -104,7 +104,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const { addressToRecover, proof } = parseRequest(await request.json());
+    const rawBody = await request.text();
+    if (rawBody.length > 16_384) {
+      return Response.json(
+        { error: "Veto request is too large." },
+        { status: 413 },
+      );
+    }
+    const { addressToRecover, proof } = parseRequest(JSON.parse(rawBody));
     const rpcUrl = process.env.SEPOLIA_RPC_URL?.trim() || sepoliaRpcUrl;
     const account = privateKeyToAccount(privateKey as Hex);
     const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
@@ -127,8 +134,12 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json({ transactionHash });
   } catch (cause) {
-    const error =
-      cause instanceof Error ? cause.message : "Veto submission failed.";
-    return Response.json({ error }, { status: 400 });
+    console.error("Veto relayer rejected a request", {
+      cause: cause instanceof Error ? cause.name : "UnknownError",
+    });
+    return Response.json(
+      { error: "Veto request was rejected." },
+      { status: 400 },
+    );
   }
 }

@@ -30,6 +30,9 @@ export async function getDefensePolicy(
   if (!tarRecoveryExecutorV2Address) {
     throw new Error("TAR Recovery V2 is not configured.");
   }
+  if (tarRecoveryExecutorV2DeploymentBlock === BigInt(0)) {
+    throw new Error("TAR Recovery V2 deployment block is not configured.");
+  }
 
   const [epoch, groupId] = await Promise.all([
     publicClient.readContract({
@@ -66,7 +69,11 @@ export async function getDefensePolicy(
     }),
   ]);
   const event = events.at(-1);
-  if (!event?.args.identityCommitments) {
+  if (
+    !event?.args.identityCommitments ||
+    event.args.identityCommitments.length !== 16 ||
+    event.args.merkleTreeRoot !== merkleTreeRoot
+  ) {
     throw new Error("Defense group members were not found.");
   }
   const members = event.args.identityCommitments.map((member) =>

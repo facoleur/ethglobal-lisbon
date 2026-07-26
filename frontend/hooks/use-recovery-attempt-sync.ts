@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { getAddress, type Address } from "viem";
 import { useKernelAccount } from "@/hooks/use-kernel";
 import { tarRecoveryExecutorV2Abi } from "@/lib/contracts/tar-recovery";
@@ -27,6 +27,7 @@ export function useRecoveryAttemptSync(ownerLabel: string) {
     (state) => state.removeAttemptsForTarget,
   );
   const [error, setError] = useState<Error | null>(null);
+  const syncingRef = useRef(false);
 
   const targets: RecoveryTarget[] = [
     ...(ownerAddress
@@ -44,10 +45,11 @@ export function useRecoveryAttemptSync(ownerLabel: string) {
 
   const sync = useEffectEvent(async () => {
     const executorAddress = tarRecoveryExecutorV2Address;
-    if (!executorAddress) return;
+    if (!executorAddress || syncingRef.current) return;
+    syncingRef.current = true;
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         targets.map(async (target) => {
           const [recovery, config] = await Promise.all([
             publicClient.readContract({
@@ -83,9 +85,19 @@ export function useRecoveryAttemptSync(ownerLabel: string) {
           });
         }),
       );
-      setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error(String(cause)));
+      const failed = results.find(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      );
+      setError(
+        failed
+          ? failed.reason instanceof Error
+            ? failed.reason
+            : new Error(String(failed.reason))
+          : null,
+      );
+    } finally {
+      syncingRef.current = false;
     }
   });
 

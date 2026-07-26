@@ -146,7 +146,7 @@ export function RecoveryAttemptDrawer({
           variant="destructive"
           className="w-full"
           onClick={() => resolve("veto")}
-          disabled={isPending || isExpired}
+          disabled={isPending}
         >
           {pendingAction === "veto" ? t("vetoingButton") : t("vetoButton")}
         </Button>

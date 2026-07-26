@@ -8,8 +8,10 @@ const IDENTITY_DOMAIN = "tar-watchtower-identity-v1";
 
 type PrfExtensionInput = {
   prf: {
-    eval: {
-      first: BufferSource;
+    evalByCredential: {
+      [credentialId: string]: {
+        first: BufferSource;
+      };
     };
   };
 };
@@ -96,7 +98,11 @@ export async function requestPasskeyPrf(
   const normalized = normalizeContext(context);
   const prfSalt = await sha256(encodeContext(normalized));
   const extensions: AuthenticationExtensionsClientInputs & PrfExtensionInput = {
-    prf: { eval: { first: prfSalt } },
+    prf: {
+      evalByCredential: {
+        [normalized.credentialId]: { first: prfSalt },
+      },
+    },
   };
   const publicKey: PublicKeyCredentialRequestOptions = {
     challenge: crypto.getRandomValues(new Uint8Array(32)),

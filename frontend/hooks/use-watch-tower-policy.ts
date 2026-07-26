@@ -82,25 +82,7 @@ export function useRegenerateWatchTowerGroup() {
         },
       ]);
 
-      const [nextEpoch, groupId] = await Promise.all([
-        publicClient.readContract({
-          abi: tarRecoveryExecutorV2Abi,
-          address: tarRecoveryExecutorV2Address,
-          functionName: "epochOf",
-          args: [address],
-        }),
-        publicClient.readContract({
-          abi: tarRecoveryExecutorV2Abi,
-          address: tarRecoveryExecutorV2Address,
-          functionName: "groupOf",
-          args: [address],
-        }),
-      ]);
-      if (nextEpoch !== epoch + BigInt(1)) {
-        throw new Error("Defense epoch did not advance.");
-      }
-
-      return { epoch: nextEpoch, groupId, members, transactionHash };
+      return { epoch: epoch + BigInt(1), members, transactionHash };
     } finally {
       setIsPreparing(false);
     }

@@ -29,6 +29,7 @@ import {
   type RecoveryAttempt,
 } from "@/lib/recovery-center";
 import { MOCK_LOCK_TIME_LABEL, MOCK_LOCK_VALUE_ETH } from "@/lib/recovery";
+import { tarRecoveryExecutorV2Address } from "@/lib/kernel/config";
 import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { MAX_WATCH_TOWERS, type WatchedWallet } from "@/lib/watch-towers";
@@ -234,34 +235,37 @@ export function RecoveryCenter() {
           </Button>
         </section>
 
-        {process.env.NODE_ENV === "development" && (
-          <section className="flex flex-col gap-2 rounded-2xl bg-black/[0.03] p-4">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="size-4" />
-              <h2 className="text-sm font-semibold">{t("devTools")}</h2>
-            </div>
-            <button
-              type="button"
-              className="text-muted-foreground text-left text-xs underline"
-              onClick={handleSimulateOwnerAttempt}
-              disabled={simulatingRole !== null || !accountAddress}
-            >
-              {simulatingRole === "owner"
-                ? t("simulating")
-                : t("simulateOwnerAttempt")}
-            </button>
-            <button
-              type="button"
-              className="text-muted-foreground text-left text-xs underline disabled:opacity-40"
-              onClick={handleSimulateWatchTowerAttempt}
-              disabled={simulatingRole !== null || watchedWallets.length === 0}
-            >
-              {simulatingRole === "watchTower"
-                ? t("simulating")
-                : t("simulateWatchedAttempt")}
-            </button>
-          </section>
-        )}
+        {process.env.NODE_ENV === "development" &&
+          !tarRecoveryExecutorV2Address && (
+            <section className="flex flex-col gap-2 rounded-2xl bg-black/[0.03] p-4">
+              <div className="flex items-center gap-2">
+                <FlaskConical className="size-4" />
+                <h2 className="text-sm font-semibold">{t("devTools")}</h2>
+              </div>
+              <button
+                type="button"
+                className="text-muted-foreground text-left text-xs underline"
+                onClick={handleSimulateOwnerAttempt}
+                disabled={simulatingRole !== null || !accountAddress}
+              >
+                {simulatingRole === "owner"
+                  ? t("simulating")
+                  : t("simulateOwnerAttempt")}
+              </button>
+              <button
+                type="button"
+                className="text-muted-foreground text-left text-xs underline disabled:opacity-40"
+                onClick={handleSimulateWatchTowerAttempt}
+                disabled={
+                  simulatingRole !== null || watchedWallets.length === 0
+                }
+              >
+                {simulatingRole === "watchTower"
+                  ? t("simulating")
+                  : t("simulateWatchedAttempt")}
+              </button>
+            </section>
+          )}
 
         <section className="overflow-hidden rounded-2xl bg-card">
           <SettingsMenuItem
