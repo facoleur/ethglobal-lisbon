@@ -5,7 +5,9 @@ import { Progress } from "@/components/ui/progress";
 import { QrCode } from "@/components/receive/qr-code";
 import { useRestoreRecoveredWallet } from "@/hooks/use-kernel";
 import { useFinalizeTarRecovery } from "@/hooks/use-tar-recovery";
+import { tarRecoveryExecutorAbi } from "@/lib/contracts/tar-recovery";
 import { getErrorMessage } from "@/lib/errors";
+import { tarRecoveryExecutorAddress } from "@/lib/kernel/config";
 import {
   buildEip681Uri,
   computeProgress,
@@ -20,7 +22,9 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useBalance } from "wagmi";
+import { useBalance, useReadContract } from "wagmi";
+
+const REJECTED_STATUS = 2;
 
 export function StepWaiting() {
   const t = useTranslations("Auth.Recovery");
@@ -35,6 +39,7 @@ export function StepWaiting() {
     committedAt,
     executableAt,
     clear,
+    setStatus,
   } = useRecoveryStore();
   const recoveredWallet = useRestoreRecoveredWallet();
   const finalization = useFinalizeTarRecovery();
@@ -43,6 +48,19 @@ export function StepWaiting() {
     address: broadcasterAddress ?? undefined,
     query: {
       enabled: broadcasterAddress !== null && status === "waiting",
+      refetchInterval: 3_000,
+    },
+  });
+  const onchainRecovery = useReadContract({
+    address: tarRecoveryExecutorAddress ?? undefined,
+    abi: tarRecoveryExecutorAbi,
+    functionName: "recoveries",
+    args: targetAccount ? [targetAccount] : undefined,
+    query: {
+      enabled:
+        tarRecoveryExecutorAddress !== null &&
+        targetAccount !== null &&
+        status === "waiting",
       refetchInterval: 3_000,
     },
   });
@@ -65,6 +83,16 @@ export function StepWaiting() {
     return () => clearInterval(id);
   }, [status]);
 
+  useEffect(() => {
+    if (
+      status === "waiting" &&
+      onchainRecovery.data &&
+      Number(onchainRecovery.data[5]) === REJECTED_STATUS
+    ) {
+      setStatus("vetoed");
+    }
+  }, [onchainRecovery.data, setStatus, status]);
+
   async function handleFinalize() {
     if (!targetAccount || !credentialId || !publicKey) {
       toast.error(tCommon("error"));
@@ -72,7 +100,8 @@ export function StepWaiting() {
     }
 
     try {
-      await finalization.finalize();
+      const finalized = await finalization.finalize();
+      if (!finalized) return;
       await recoveredWallet.restore(credentialId, publicKey, targetAccount);
       clear();
       router.replace("/");

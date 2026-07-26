@@ -37,6 +37,7 @@ import { prepareDefenseGroupMembers } from "@/lib/watch-tower-policy";
 const EXECUTOR_MODULE_TYPE = BigInt(2);
 const NONE_STATUS = 0;
 const REVEALED_STATUS = 1;
+const REJECTED_STATUS = 2;
 const FINALIZED_STATUS = 3;
 
 function normalizeError(error: unknown) {
@@ -477,9 +478,14 @@ export function useFinalizeTarRecovery() {
         functionName: "recoveries",
         args: [targetAccount],
       });
-      if (Number(currentRecovery[5]) === NONE_STATUS) {
+      const currentStatus = Number(currentRecovery[5]);
+      if (currentStatus === NONE_STATUS || currentStatus === FINALIZED_STATUS) {
         setStatus("finalized");
-        return null;
+        return true;
+      }
+      if (currentStatus === REJECTED_STATUS) {
+        setStatus("vetoed");
+        return false;
       }
 
       const walletClient = createBroadcasterWalletClient(broadcasterPrivateKey);
@@ -511,7 +517,7 @@ export function useFinalizeTarRecovery() {
       }
 
       setStatus("finalized");
-      return receipt.transactionHash;
+      return true;
     } catch (cause) {
       const nextError = normalizeError(cause);
       setError(nextError);
