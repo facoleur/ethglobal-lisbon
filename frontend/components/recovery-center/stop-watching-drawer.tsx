@@ -23,7 +23,6 @@ export function StopWatchingDrawer({
   onClose,
 }: StopWatchingDrawerProps) {
   const t = useTranslations("App.Recovery.StopWatchingDrawer");
-  const tCommon = useTranslations("Common");
   const [isRemoving, setIsRemoving] = useState(false);
   const removeWatchedWallet = useWatchTowerStore(
     (state) => state.removeWatchedWallet,
