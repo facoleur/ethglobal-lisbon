@@ -23,7 +23,7 @@ export function BottomSheet({
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Drawer.Content className="bg-card fixed right-0 bottom-0 left-0 z-50 flex flex-col rounded-t-2xl pb-[env(safe-area-inset-bottom)]">
           <Drawer.Handle className="mx-auto mt-3 !h-1.5 !w-10 !rounded-full !bg-zinc-300 !opacity-100 touch-none" />
-          <div className="mx-auto w-full max-w-sm px-6 pt-4 pb-10 flex flex-col gap-6">
+          <div className="mx-auto w-full max-w-md px-4 pt-4 pb-10 flex flex-col gap-6">
             {(title || titleAction) && (
               <div className="flex items-center justify-between">
                 {title && (

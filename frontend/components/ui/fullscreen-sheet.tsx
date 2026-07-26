@@ -19,7 +19,7 @@ export function FullscreenSheet({
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Drawer.Content className="bg-background fixed inset-x-0 bottom-0 top-4 z-50 flex flex-col rounded-t-3xl pb-[env(safe-area-inset-bottom)]">
           <Drawer.Handle className="mx-auto mt-3 !h-1.5 !w-10 !rounded-full !bg-zinc-300 !opacity-100 touch-none" />
-          <div className="mx-auto flex w-full max-w-sm flex-1 flex-col overflow-y-auto px-6 py-4 pb-10">
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col overflow-y-auto px-4 py-4 pb-10">
             {children}
           </div>
         </Drawer.Content>

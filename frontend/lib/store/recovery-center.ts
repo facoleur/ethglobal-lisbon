@@ -15,6 +15,7 @@ type RecoveryCenterState = PersistedRecoveryCenterState & {
   addAttempt: (attempt: RecoveryAttempt) => void;
   removeAttempt: (id: string) => void;
   removeAttemptsForTarget: (address: Address) => void;
+  purgeExpiredWatchTowerAttempts: (now: number) => void;
   clear: () => void;
 };
 
@@ -41,6 +42,12 @@ export const useRecoveryCenterStore = create<RecoveryCenterState>()(
         set((state) => ({
           attempts: state.attempts.filter(
             (item) => item.targetAddress !== address,
+          ),
+        })),
+      purgeExpiredWatchTowerAttempts: (now) =>
+        set((state) => ({
+          attempts: state.attempts.filter(
+            (item) => !(item.role === "watchTower" && item.executableAt < now),
           ),
         })),
       clear: () => set({ attempts: [] }),

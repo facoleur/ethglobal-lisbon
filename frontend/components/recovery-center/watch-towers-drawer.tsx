@@ -10,6 +10,7 @@ import { EnrollmentQrScanner } from "@/components/recovery-center/enrollment-qr-
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
+import { getErrorMessage } from "@/lib/errors";
 import { Input } from "@/components/ui/input";
 import { useKernelAccount } from "@/hooks/use-kernel";
 import { useRegenerateWatchTowerGroup } from "@/hooks/use-watch-tower-policy";
@@ -66,6 +67,9 @@ export function WatchTowersDrawer({
   );
   const [label, setLabel] = useState("");
   const [towerToRemove, setTowerToRemove] = useState<WatchTower | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
 
   const isAtLimit = watchTowers.length >= MAX_WATCH_TOWERS;
   const labelValid = label.trim().length > 0;
@@ -108,6 +112,7 @@ export function WatchTowersDrawer({
     if (!enrollment || !labelValid || duplicateEnrollment || isAtLimit) return;
     const watchTower = createWatchTower(label, enrollment);
 
+    setIsAdding(true);
     try {
       const nextWatchTowers = [...watchTowers, watchTower];
       if (isConfigured) await regenerate(nextWatchTowers);
@@ -118,13 +123,16 @@ export function WatchTowersDrawer({
       }
       toast.success(t("addSuccess"));
       resetAddFlow();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    } finally {
+      setIsAdding(false);
     }
   }
 
   async function handleRemove() {
     if (!towerToRemove) return;
+    setIsRemoving(true);
     try {
       const nextWatchTowers = watchTowers.filter(
         (tower) => tower.id !== towerToRemove.id,
@@ -137,24 +145,33 @@ export function WatchTowersDrawer({
       }
       toast.success(t("removeSuccess"));
       setTowerToRemove(null);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    } finally {
+      setIsRemoving(false);
     }
   }
 
   async function handleActivatePolicy() {
+    setIsActivating(true);
     try {
       await regenerate(watchTowers);
       advanceWatchTowerCommitments(watchTowers.map((tower) => tower.id));
       await defenseGroup.refetch();
       toast.success(t("policyActivated"));
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    } finally {
+      setIsActivating(false);
     }
   }
 
   function handleDrawerChange(nextOpen: boolean) {
-    if (!nextOpen && isUpdatingPolicy) return;
+    if (
+      !nextOpen &&
+      (isUpdatingPolicy || isAdding || isRemoving || isActivating)
+    )
+      return;
     if (!nextOpen) {
       setScannerOpen(false);
       resetAddFlow();
@@ -237,10 +254,12 @@ export function WatchTowersDrawer({
                 variant="secondary"
                 className="w-full"
                 onClick={handleActivatePolicy}
-                disabled={isUpdatingPolicy}
+                disabled={isUpdatingPolicy || isActivating}
+                loading={isActivating}
+                loadingLabel={t("updatingPolicy")}
               >
                 <ShieldCheck className="size-5" />
-                {isUpdatingPolicy ? t("updatingPolicy") : t("activatePolicy")}
+                {t("activatePolicy")}
               </Button>
             )}
             <Button
@@ -266,7 +285,7 @@ export function WatchTowersDrawer({
       <BottomSheet
         open={addOpen}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen && !isUpdatingPolicy) resetAddFlow();
+          if (!nextOpen && !isUpdatingPolicy && !isAdding) resetAddFlow();
         }}
         title={t("labelTitle")}
       >
@@ -281,7 +300,6 @@ export function WatchTowersDrawer({
             autoFocus
           />
         </div>
-
         {enrollment ? (
           <div className="flex items-center gap-3 rounded-2xl bg-secondary p-4">
             <ShieldCheck className="size-6 shrink-0" />
@@ -305,7 +323,6 @@ export function WatchTowersDrawer({
             {t("scanEnrollment")}
           </Button>
         )}
-
         <Button
           size="lg"
           className="w-full"
@@ -315,17 +332,21 @@ export function WatchTowersDrawer({
             !enrollment ||
             duplicateEnrollment ||
             isAtLimit ||
-            isUpdatingPolicy
+            isUpdatingPolicy ||
+            isAdding
           }
+          loading={isAdding}
+          loadingLabel={t("updatingPolicy")}
         >
-          {isUpdatingPolicy ? t("updatingPolicy") : t("confirmAddButton")}
+          {t("confirmAddButton")}
         </Button>
       </BottomSheet>
 
       <BottomSheet
         open={towerToRemove !== null}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen && !isUpdatingPolicy) setTowerToRemove(null);
+          if (!nextOpen && !isUpdatingPolicy && !isRemoving)
+            setTowerToRemove(null);
         }}
         title={t("removeTitle")}
       >
@@ -338,16 +359,18 @@ export function WatchTowersDrawer({
             variant="destructive"
             className="w-full"
             onClick={handleRemove}
-            disabled={isUpdatingPolicy}
+            disabled={isUpdatingPolicy || isRemoving}
+            loading={isRemoving}
+            loadingLabel={t("removingButton")}
           >
-            {isUpdatingPolicy ? t("updatingPolicy") : t("confirmRemoveButton")}
+            {t("confirmRemoveButton")}
           </Button>
           <Button
             size="lg"
             variant="secondary"
             className="w-full"
             onClick={() => setTowerToRemove(null)}
-            disabled={isUpdatingPolicy}
+            disabled={isUpdatingPolicy || isRemoving}
           >
             {tCommon("cancel")}
           </Button>

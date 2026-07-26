@@ -1,4 +1,10 @@
-import { createPublicClient, getAddress, http, type Address } from "viem";
+import {
+  createPublicClient,
+  getAddress,
+  http,
+  webSocket,
+  type Address,
+} from "viem";
 import { sepolia } from "viem/chains";
 import { entryPoint07Address } from "viem/account-abstraction";
 
@@ -47,10 +53,38 @@ export const sepoliaRpcUrl =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL?.trim() ||
   "https://ethereum-sepolia-rpc.publicnode.com";
 
+// Derive a WebSocket URL from the configured RPC URL when possible.
+// Supports explicit wss:// URLs (NEXT_PUBLIC_SEPOLIA_WS_URL) or falls back to
+// converting the HTTP publicnode.com endpoint to its WSS equivalent.
+function deriveWsUrl(httpUrl: string): string | null {
+  const explicit = process.env.NEXT_PUBLIC_SEPOLIA_WS_URL?.trim();
+  if (explicit) return explicit;
+
+  // publicnode.com offers a WSS endpoint at wss://ethereum-sepolia-rpc.publicnode.com
+  try {
+    const parsed = new URL(httpUrl);
+    if (parsed.hostname.endsWith("publicnode.com")) {
+      parsed.protocol = "wss:";
+      return parsed.toString();
+    }
+  } catch {
+    // unparseable URL – skip
+  }
+  return null;
+}
+
+const sepoliaWsUrl = deriveWsUrl(sepoliaRpcUrl);
+
+// HTTP client – used for writes and one-off reads outside React.
 export const publicClient = createPublicClient({
   chain,
   transport: http(sepoliaRpcUrl),
 });
+
+// WebSocket client used for real-time subscriptions when available.
+export const watchClient = sepoliaWsUrl
+  ? createPublicClient({ chain, transport: webSocket(sepoliaWsUrl) })
+  : publicClient;
 
 export function getBrowserPasskeyRpId(): string {
   if (typeof window === "undefined") {

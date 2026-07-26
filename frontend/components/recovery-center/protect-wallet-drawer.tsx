@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ScanLine } from "lucide-react";
 import { getAddress, isAddress } from "viem";
 import { toast } from "sonner";
 import { AccountAvatar } from "@/components/ui/account-avatar";
 import { AnimatedQrCode } from "@/components/ui/animated-qr-code";
+import { AddressInput } from "@/components/ui/address-input";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/ui/qr-scanner";
 import { chain, getBrowserPasskeyRpId } from "@/lib/kernel/config";
+import { getErrorMessage } from "@/lib/errors";
 import { truncateAddress } from "@/lib/recovery";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { useWalletStore } from "@/lib/store/wallet";
@@ -41,7 +42,6 @@ export function ProtectWalletDrawer({
   onOpenChange,
 }: ProtectWalletDrawerProps) {
   const t = useTranslations("App.Recovery.ProtectWalletDrawer");
-  const tCommon = useTranslations("Common");
   const { watchedWallets, addWatchedWallet } = useWatchTowerStore();
   const credentialId = useWalletStore((state) => state.credentialId);
   const [label, setLabel] = useState("");
@@ -106,7 +106,7 @@ export function ProtectWalletDrawer({
       const message =
         error instanceof PasskeyPrfUnavailableError
           ? t("prfUnavailable")
-          : tCommon("error");
+          : getErrorMessage(error);
       setGenerationError(message);
       toast.error(message);
     } finally {
@@ -193,23 +193,14 @@ export function ProtectWalletDrawer({
                   <label className="text-sm font-medium">
                     {t("addressLabel")}
                   </label>
-                  <div className="relative">
-                    <Input
-                      value={address}
-                      onChange={(event) => setAddress(event.target.value)}
-                      placeholder={t("addressPlaceholder")}
-                      aria-invalid={address.length > 0 && !validAddress}
-                      className="pr-12"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setScannerOpen(true)}
-                      aria-label={t("scanLabel")}
-                      className="text-muted-foreground absolute top-1/2 right-4 -translate-y-1/2"
-                    >
-                      <ScanLine className="size-5" />
-                    </button>
-                  </div>
+                  <AddressInput
+                    value={address}
+                    onChange={(event) => setAddress(event.target.value)}
+                    placeholder={t("addressPlaceholder")}
+                    aria-invalid={address.length > 0 && !validAddress}
+                    onScanClick={() => setScannerOpen(true)}
+                    scanAriaLabel={t("scanLabel")}
+                  />
                   {isDuplicate && (
                     <p className="text-destructive text-sm">
                       {t("duplicateWallet")}
@@ -230,8 +221,10 @@ export function ProtectWalletDrawer({
                     isGenerating ||
                     !credentialId
                   }
+                  loading={isGenerating}
+                  loadingLabel={t("generatingButton")}
                 >
-                  {isGenerating ? t("generatingButton") : t("generateButton")}
+                  {t("generateButton")}
                 </Button>
                 {generationError && (
                   <p className="text-destructive mt-3 text-center text-sm">

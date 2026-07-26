@@ -293,7 +293,6 @@ export function useUpdateRecoveryParams() {
 }
 
 export function useSubmitTarRecovery() {
-  const recovery = useRecoveryStore();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -302,6 +301,7 @@ export function useSubmitTarRecovery() {
       throw new Error("TAR recovery executor is not configured.");
     }
 
+    const recovery = useRecoveryStore.getState();
     const {
       targetAccount,
       broadcasterAddress,

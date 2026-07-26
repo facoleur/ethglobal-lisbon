@@ -38,15 +38,10 @@
       "copyBroadcasterAddress": "Copy funding address",
       "broadcasterAddressCopied": "Funding address copied!",
       "waitingForFunds": "Waiting for funds…",
-      "fundsReceived": "Funds received. Ready to create the recovery passkey.",
-      "createRecoveryPasskey": "Create recovery passkey",
+      "fundsReceived": "Funds received. Tap the button below to start recovery.",
       "creatingRecoveryPasskey": "Creating recovery passkey…",
-      "passkeyReady": "Recovery passkey and commitment are ready.",
       "startRecoveryButton": "Start recovery",
       "submittingRecovery": "Submitting recovery…",
-      "stakeButton": "Stake & start recovery",
-      "stakingButton": "Starting recovery…",
-      "cancelButton": "Cancel",
       "step3Title": "Recovery in progress",
       "step3Subtitle": "Waiting for the lock time to expire.",
       "timeRemaining": "Time remaining",
@@ -69,6 +64,11 @@
     }
   },
   "App": {
+    "SetupBanner": {
+      "badge": "Required",
+      "title": "Finish setting up your wallet",
+      "subtitle": "Configure your lock time and lock value to activate recovery protection."
+    },
     "Home": {
       "balanceLabel": "Balance",
       "sendButton": "Send",
@@ -208,20 +208,22 @@
       "RemoveAccountDrawer": {
         "title": "Remove Account",
         "warning": "This will remove your wallet from this device. Make sure you have your recovery method before continuing.",
-        "confirmButton": "Remove Account",
-        "cancelButton": "Cancel"
+        "confirmButton": "Remove Account"
       }
     },
     "SendDrawer": {
       "title": "Send ETH",
       "recipientLabel": "Recipient address",
       "recipientPlaceholder": "Recipient address (0x...)",
+      "scanAddress": "Scan recipient address",
+      "invalidQr": "This QR code does not contain a valid Ethereum address.",
       "amountLabel": "Amount in ETH",
       "amountPlaceholder": "Amount (ETH)",
       "confirmButton": "Confirm",
       "sendingButton": "Sending…",
       "invalidRecipient": "Enter a valid recipient address.",
       "invalidAmount": "Enter an amount greater than zero.",
+      "insufficientBalance": "Amount exceeds your available balance.",
       "sendFailed": "Transaction failed: {message}",
       "success": "ETH sent successfully."
     },
@@ -237,6 +239,7 @@
   },
   "Common": {
     "error": "Something went wrong.",
+    "revokedPasskeyError": "Your passkey is no longer authorized. Your wallet was recovered by a guardian.",
     "cancel": "Cancel",
     "tryAgain": "Try again",
     "notFound": "Page not found",

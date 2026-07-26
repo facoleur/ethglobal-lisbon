@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Address, Hex } from "viem";
 import type { WaitForUserOperationReceiptReturnType } from "viem/account-abstraction";
 import { useKernelContext } from "@/providers/kernel-provider";
-import { publicClient } from "@/lib/kernel/config";
+import { publicClient, watchClient } from "@/lib/kernel/config";
 import { normalizeError } from "@/lib/errors";
 
 export type KernelCall = {
@@ -76,30 +76,38 @@ export function useKernelBalance() {
     }
   };
 
+  // Subscribe to new block numbers so the balance stays up-to-date in
+  // real-time.  When a WebSocket transport is available (watchClient ≠
+  // publicClient), viem uses eth_subscribe / newHeads — no polling at all.
+  // When only HTTP is available, viem polls eth_blockNumber on each block,
+  // which is still far cheaper than a separate setInterval on getBalance.
+  // The unwatch function returned by watchBlockNumber is used as the
+  // useEffect cleanup, guaranteeing the subscription is closed on unmount or
+  // when the address changes.
   useEffect(() => {
-    let cancelled = false;
-
     if (!address) return;
 
-    publicClient
-      .getBalance({ address })
-      .then((nextBalance) => {
-        if (!cancelled) {
-          setBalance(nextBalance);
-          setLoadedAddress(address);
-          setError(null);
-        }
-      })
-      .catch((cause) => {
-        if (!cancelled) {
-          setLoadedAddress(address);
-          setError(normalizeError(cause));
-        }
-      });
+    const unwatch = watchClient.watchBlockNumber({
+      emitOnBegin: true,
+      onBlockNumber: () => {
+        publicClient
+          .getBalance({ address })
+          .then((nextBalance) => {
+            setBalance(nextBalance);
+            setLoadedAddress(address);
+            setError(null);
+          })
+          .catch((cause) => {
+            setLoadedAddress(address);
+            setError(normalizeError(cause));
+          });
+      },
+      onError: (cause) => {
+        setError(normalizeError(cause));
+      },
+    });
 
-    return () => {
-      cancelled = true;
-    };
+    return unwatch;
   }, [address]);
 
   const hasCurrentBalance = Boolean(address && loadedAddress === address);

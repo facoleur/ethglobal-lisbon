@@ -1,4 +1,22 @@
 import QRCode from "qrcode";
+import { isAddress } from "viem";
+
+/**
+ * Parse an Ethereum address from a QR code value.
+ * Accepts:
+ *   - bare address: "0xABCD…"
+ *   - EIP-681 URI:  "ethereum:0xABCD…" or "ethereum:0xABCD…@1?value=…"
+ * Returns the checksummed address string, or null if not valid.
+ */
+export function parseEthereumQr(raw: string): string | null {
+  const trimmed = raw.trim();
+
+  // EIP-681 / EIP-2400: ethereum:<address>[@chainId][?params]
+  const eipMatch = trimmed.match(/^ethereum:([^@?]+)/i);
+  const candidate = eipMatch ? eipMatch[1] : trimmed;
+
+  return isAddress(candidate) ? candidate : null;
+}
 
 export type QRMatrix = {
   modules: boolean[][];

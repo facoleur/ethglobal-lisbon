@@ -46,14 +46,14 @@ export function ScreenLayout({
         </div>
       )}
       {stretch ? (
-        <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8">
-          <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-y-auto px-4 py-8">
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
             {children}
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8">
-          <div className="w-full max-w-sm">{children}</div>
+        <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
+          <div className="w-full max-w-md">{children}</div>
         </div>
       )}
     </div>
