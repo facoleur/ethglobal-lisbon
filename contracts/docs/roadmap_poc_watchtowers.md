@@ -113,11 +113,14 @@ function challengeRecovery(
 
 ## Milestone E — Vecteur de test croisé JS/Solidity (vraie preuve Semaphore)
 
-**Fichier** : `test/integration/SemaphoreProofVector.t.sol`, script JS associé (hors repo contrats ou dans un dossier `script/js/`)
+**Note de numérotation** : réalisée sous l'étiquette Milestone D dans `context_mD_v2.md` — voir
+ce document pour le détail d'implémentation, celui-ci reste la référence de scope/objectif.
 
-- Génère off-chain, via `@semaphore-protocol/core` (identité + groupe) et `@semaphore-protocol/proof` (Groth16 réel), un groupe de taille fixe avec un membre connu, un `scope` et un `message` fixés, et exporte le `SemaphoreProof` résultant en fixture (JSON) consommable par le test Foundry — même logique que le vecteur de commitment JS/Solidity de POC1 (Milestone B), mais pour une preuve complète plutôt qu'un simple hash.
+**Fichier** : `test/integration/SemaphoreProofVector.t.sol`, script JS associé (`script/js/generate-fixture.mjs`)
+
+- Génère off-chain, via `@semaphore-protocol/identity`/`@semaphore-protocol/group` et `@semaphore-protocol/proof` (Groth16 réel), un groupe de taille fixe avec un membre connu, un `scope` et un `message` fixés, et exporte le `SemaphoreProof` résultant en fixture (JSON) consommable par le test Foundry — même logique que le vecteur de commitment JS/Solidity de POC1 (Milestone B), mais pour une preuve complète plutôt qu'un simple hash.
 - Test Foundry : déploie un vrai `Semaphore.sol` + `SemaphoreVerifier.sol` (pas le mock), reconstruit le même groupe on-chain, soumet la fixture à `challengeRecovery`, vérifie l'acceptation.
-- Deuxième fixture avec un membre absent du groupe → vérifie le rejet.
+- Deuxième fixture, **pas** littéralement générée depuis une identité absente du groupe : le circuit calcule `merkleTreeRoot` comme une sortie dérivée du witness, donc une preuve issue d'une identité réellement absente porterait une racine différente et serait rejetée par `Semaphore__MerkleTreeRootIsNotPartOfTheGroup` avant même d'atteindre le vérifieur Groth16 — pas par `verifyProof` retournant `false`. La fixture réutilise donc la racine/nullifier/message/scope de la preuve valide (passe tous les checks structurels) avec des `points` corrompus, pour cibler précisément le chemin `InvalidWatchTowerProof`. Voir `script/js/generate-fixture.mjs` pour le raisonnement complet.
 - **Objectif explicite** : détecter tout mismatch d'encodage entre la génération JS et l'attente Solidity avant l'intégration Kernel, pas pendant — même motivation que le vecteur croisé de commitment en POC1, qui avait justement été signalé comme "à écrire tôt" dans le feedback POC1.
 
 *Fini quand* : les deux fixtures (membre valide / membre absent) passent contre le vrai vérifieur Semaphore, pas contre `MockSemaphore`.

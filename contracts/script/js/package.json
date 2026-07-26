@@ -1,0 +1,14 @@
+{
+  "name": "tar-semaphore-fixture-generator",
+  "private": true,
+  "type": "module",
+  "description": "Generates the real-Groth16-proof fixture consumed by test/integration/SemaphoreProofVector.t.sol. Run once (`node generate-fixture.mjs`), not on every test run — see docs/v2/context_mD_v2.md.",
+  "scripts": {
+    "generate": "node generate-fixture.mjs"
+  },
+  "dependencies": {
+    "@semaphore-protocol/identity": "4.0.0",
+    "@semaphore-protocol/group": "4.0.0",
+    "@semaphore-protocol/proof": "4.0.0"
+  }
+}

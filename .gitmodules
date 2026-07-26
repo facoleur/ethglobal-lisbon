@@ -16,3 +16,6 @@
 [submodule "contracts/lib/semaphore"]
 	path = contracts/lib/semaphore
 	url = https://github.com/semaphore-protocol/semaphore.git
+[submodule "contracts/lib/zk-kit.solidity"]
+	path = contracts/lib/zk-kit.solidity
+	url = https://github.com/privacy-scaling-explorations/zk-kit.solidity.git

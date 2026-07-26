@@ -7,6 +7,8 @@ script = "script"
 optimizer = true
 optimizer_runs = 200
 via_ir = true
+# Read-only, scoped to the committed Semaphore proof fixture (test/integration/SemaphoreProofVector.t.sol).
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
 
 [lint]
 # Disabled: vendored dependencies (e.g. kernel-7579-plugins) use bare "src/..."
@@ -24,3 +26,14 @@ lint_on_build = false
 # `^0.8.2x` sources to the latest installed/available matching solc (verified: full existing
 # test suite still passes under it), while anything importing Semaphore resolves independently
 # to exactly 0.8.23, forced by its own pragma — no restriction needed on our side.
+
+# `base/SemaphoreVerifier.sol`'s hardcoded Groth16 verifying-key array (real verifier, Milestone
+# D) is slow to optimize through the `via_ir` pipeline the rest of the project needs (kept on:
+# `kernel-7579-plugins/src/utils/WebAuthn.sol` hits "stack too deep" without it) — tried scoping
+# `via_ir = false` to just the Semaphore-touching files via `compilation_restrictions`, but forge
+# resolves restrictions per shared-solc-version compilation group as a whole: any file with no
+# explicit restriction (every kernel/OpenZeppelin utility these files also import) is implicitly
+# pinned to the *default* profile, so it can never join a group asking for a different `via_ir`
+# value — would require restricting the full transitive closure, including files shared with V1
+# (`MockERC7579Account.sol`, etc.), which can't be pinned to two contradictory values at once for
+# their two separate call sites. Not worth it for a one-time, cached compile cost.
