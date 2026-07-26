@@ -1,20 +1,30 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import jsQR from "jsqr";
 import { haptic } from "@/lib/haptics";
 
 type QrScannerProps = {
+  children?: ReactNode;
+  continuous?: boolean;
   onDetect: (value: string) => void;
   onClose: () => void;
 };
 
-export function QrScanner({ onDetect, onClose }: QrScannerProps) {
+export function QrScanner({
+  children,
+  continuous = false,
+  onDetect,
+  onClose,
+}: QrScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const detectedRef = useRef(false);
+  const lastDetectionRef = useRef<{ at: number; value: string } | null>(null);
+  const detect = useEffectEvent(onDetect);
+  const close = useEffectEvent(onClose);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -34,10 +44,18 @@ export function QrScanner({ onDetect, onClose }: QrScannerProps) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height);
         if (code?.data) {
-          detectedRef.current = true;
-          haptic("medium");
-          onDetect(code.data);
-          return;
+          const now = Date.now();
+          const lastDetection = lastDetectionRef.current;
+          const duplicate =
+            lastDetection?.value === code.data && now - lastDetection.at < 750;
+
+          if (!duplicate) {
+            lastDetectionRef.current = { at: now, value: code.data };
+            detectedRef.current = !continuous;
+            haptic(continuous ? "light" : "medium");
+            detect(code.data);
+            if (!continuous) return;
+          }
         }
       }
       rafRef.current = requestAnimationFrame(scan);
@@ -55,7 +73,7 @@ export function QrScanner({ onDetect, onClose }: QrScannerProps) {
           rafRef.current = requestAnimationFrame(scan);
         }
       } catch {
-        onClose();
+        close();
       }
     }
 
@@ -65,7 +83,7 @@ export function QrScanner({ onDetect, onClose }: QrScannerProps) {
       cancelAnimationFrame(rafRef.current);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [onDetect, onClose]);
+  }, [continuous]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
@@ -89,6 +107,12 @@ export function QrScanner({ onDetect, onClose }: QrScannerProps) {
           <div className="absolute bottom-0 right-0 h-9 w-9 rounded-br-xl border-b-[3px] border-r-[3px] border-white/80" />
         </div>
       </div>
+
+      {children && (
+        <div className="absolute right-6 bottom-12 left-6 flex justify-center">
+          {children}
+        </div>
+      )}
 
       {/* close button */}
       <button

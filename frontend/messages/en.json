@@ -121,6 +121,11 @@
         "vetoSuccess": "Recovery attempt vetoed.",
         "allowSuccess": "Recovery attempt acknowledged."
       },
+      "EnrollmentQrScanner": {
+        "waitingForFirstFrame": "Hold the animated QR inside the frame",
+        "progress": "Scanning {received} of {total}",
+        "invalidQr": "This is not a valid watch tower enrollment QR."
+      },
       "WatchTowersDrawer": {
         "title": "Watch towers",
         "count": "{count} of {max} configured",
