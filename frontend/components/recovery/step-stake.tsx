@@ -231,7 +231,7 @@ export function StepStake() {
           <Button
             type="button"
             size="lg"
-            variant="outline"
+            variant="secondary"
             className="w-full rounded-2xl py-4"
             onClick={handleCopyBroadcasterAddress}
             disabled={!broadcasterAddress}
