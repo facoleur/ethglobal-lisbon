@@ -136,6 +136,8 @@
         "emptySubtitle": "Add someone you trust to veto suspicious recoveries while you are offline.",
         "removeLabel": "Remove {label}",
         "addButton": "Add watch tower",
+        "activatePolicy": "Activate on-chain protection",
+        "policyActivated": "On-chain protection activated.",
         "limitReached": "15 external watch towers maximum",
         "duplicateEnrollment": "This watch tower is already configured.",
         "wrongNetwork": "This enrollment was created for another network.",

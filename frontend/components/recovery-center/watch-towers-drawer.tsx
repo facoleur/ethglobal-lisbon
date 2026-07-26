@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, ScanLine, ShieldCheck, Trash2, X } from "lucide-react";
 import { getAddress } from "viem";
+import { useReadContract } from "wagmi";
 import { toast } from "sonner";
 import { EnrollmentQrScanner } from "@/components/recovery-center/enrollment-qr-scanner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -12,7 +13,9 @@ import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
 import { useKernelAccount } from "@/hooks/use-kernel";
 import { useRegenerateWatchTowerGroup } from "@/hooks/use-watch-tower-policy";
+import { tarRecoveryExecutorV2Abi } from "@/lib/contracts/tar-recovery";
 import { chain } from "@/lib/kernel/config";
+import { tarRecoveryExecutorV2Address } from "@/lib/kernel/config";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import type { WatchTowerEnrollment } from "@/lib/watch-tower-enrollment";
 import {
@@ -46,6 +49,16 @@ export function WatchTowersDrawer({
     isConfigured,
     isPending: isUpdatingPolicy,
   } = useRegenerateWatchTowerGroup();
+  const defenseGroup = useReadContract({
+    abi: tarRecoveryExecutorV2Abi,
+    address: tarRecoveryExecutorV2Address ?? undefined,
+    functionName: "groupOf",
+    args: ownerAddress ? [ownerAddress] : undefined,
+    query: {
+      enabled:
+        tarRecoveryExecutorV2Address !== null && ownerAddress !== undefined,
+    },
+  });
   const [addOpen, setAddOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [enrollment, setEnrollment] = useState<WatchTowerEnrollment | null>(
@@ -59,6 +72,7 @@ export function WatchTowersDrawer({
   const duplicateEnrollment =
     enrollment !== null &&
     watchTowers.some((tower) => tower.id === enrollment.relationshipId);
+  const needsPolicyActivation = isConfigured && defenseGroup.data === BigInt(0);
 
   function resetAddFlow() {
     setAddOpen(false);
@@ -123,6 +137,17 @@ export function WatchTowersDrawer({
       }
       toast.success(t("removeSuccess"));
       setTowerToRemove(null);
+    } catch {
+      toast.error(tCommon("error"));
+    }
+  }
+
+  async function handleActivatePolicy() {
+    try {
+      await regenerate(watchTowers);
+      advanceWatchTowerCommitments(watchTowers.map((tower) => tower.id));
+      await defenseGroup.refetch();
+      toast.success(t("policyActivated"));
     } catch {
       toast.error(tCommon("error"));
     }
@@ -205,7 +230,19 @@ export function WatchTowersDrawer({
             )}
           </div>
 
-          <div className="pt-6">
+          <div className="flex flex-col gap-2 pt-6">
+            {needsPolicyActivation && (
+              <Button
+                size="lg"
+                variant="secondary"
+                className="w-full"
+                onClick={handleActivatePolicy}
+                disabled={isUpdatingPolicy}
+              >
+                <ShieldCheck className="size-5" />
+                {isUpdatingPolicy ? t("updatingPolicy") : t("activatePolicy")}
+              </Button>
+            )}
             <Button
               size="lg"
               className="w-full"

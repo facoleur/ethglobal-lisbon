@@ -5,17 +5,12 @@ import { encodeFunctionData } from "viem";
 import { useKernelAccount, useSendKernelTransaction } from "@/hooks/use-kernel";
 import { tarRecoveryExecutorV2Abi } from "@/lib/contracts/tar-recovery";
 import {
-  chain,
-  getBrowserPasskeyRpId,
   publicClient,
   tarRecoveryExecutorV2Address,
 } from "@/lib/kernel/config";
 import { useWalletStore } from "@/lib/store/wallet";
-import { deriveWatchTowerIdentityPool } from "@/lib/watch-tower-identity";
-import { createDefenseGroupMembers } from "@/lib/watch-tower-proof";
+import { prepareDefenseGroupMembers } from "@/lib/watch-tower-policy";
 import type { WatchTower } from "@/lib/watch-towers";
-
-const OWNER_RELATIONSHIP_ID = "owner";
 
 export function useRegenerateWatchTowerGroup() {
   const { address } = useKernelAccount();
@@ -53,23 +48,11 @@ export function useRegenerateWatchTowerGroup() {
         );
       }
       const ownerIdentityIndex = Number(epoch);
-      if (
-        !Number.isSafeInteger(ownerIdentityIndex) ||
-        ownerIdentityIndex >= 100
-      ) {
-        throw new Error("Owner identity pool exhausted.");
-      }
-
-      const ownerIdentities = await deriveWatchTowerIdentityPool({
-        chainId: chain.id,
+      const members = await prepareDefenseGroupMembers(
+        address,
         credentialId,
-        protectedWallet: address,
-        relationshipId: OWNER_RELATIONSHIP_ID,
-        rpId: getBrowserPasskeyRpId(),
-      });
-      const members = createDefenseGroupMembers(
-        ownerIdentities[ownerIdentityIndex].commitment.toString(),
         watchTowers,
+        ownerIdentityIndex,
       );
       const transactionHash = await sendTransaction([
         {

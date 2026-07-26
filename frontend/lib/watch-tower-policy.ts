@@ -10,11 +10,18 @@ import {
   tarRecoveryExecutorV2Address,
   tarRecoveryExecutorV2DeploymentBlock,
 } from "@/lib/kernel/config";
-import type { WatchedWallet } from "@/lib/watch-towers";
 import {
+  deriveWatchTowerIdentityPool,
+  WATCH_TOWER_IDENTITY_COUNT,
+} from "@/lib/watch-tower-identity";
+import {
+  createDefenseGroupMembers,
   generateWatchTowerProof,
   type SemaphoreProofAbi,
 } from "@/lib/watch-tower-proof";
+import type { WatchedWallet, WatchTower } from "@/lib/watch-towers";
+
+const OWNER_RELATIONSHIP_ID = "owner";
 
 export type DefensePolicy = {
   epoch: bigint;
@@ -28,6 +35,34 @@ export class VetoRelayerUnavailableError extends Error {
     super("The veto relayer is not configured.");
     this.name = "VetoRelayerUnavailableError";
   }
+}
+
+export async function prepareDefenseGroupMembers(
+  protectedWallet: Address,
+  credentialId: string,
+  watchTowers: WatchTower[],
+  identityPoolIndex: number,
+): Promise<string[]> {
+  if (
+    !Number.isSafeInteger(identityPoolIndex) ||
+    identityPoolIndex < 0 ||
+    identityPoolIndex >= WATCH_TOWER_IDENTITY_COUNT
+  ) {
+    throw new Error("Owner identity pool exhausted.");
+  }
+
+  const ownerIdentities = await deriveWatchTowerIdentityPool({
+    chainId: chain.id,
+    credentialId,
+    protectedWallet,
+    relationshipId: OWNER_RELATIONSHIP_ID,
+    rpId: getBrowserPasskeyRpId(),
+  });
+
+  return createDefenseGroupMembers(
+    ownerIdentities[identityPoolIndex].commitment.toString(),
+    watchTowers,
+  );
 }
 
 async function requireVetoRelayer(): Promise<void> {
@@ -135,7 +170,7 @@ export async function prepareOwnerVeto(
       chainId: chain.id,
       credentialId,
       protectedWallet,
-      relationshipId: "owner",
+      relationshipId: OWNER_RELATIONSHIP_ID,
       rpId: getBrowserPasskeyRpId(),
     },
     expectedRoot: policy.merkleTreeRoot.toString(),

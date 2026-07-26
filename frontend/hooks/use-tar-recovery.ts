@@ -19,15 +19,20 @@ import {
   lockTimeToSeconds,
   getTarExecutorInstallData,
   tarRecoveryExecutorAbi,
+  tarRecoveryExecutorV2Abi,
   type LockTimeUnit,
 } from "@/lib/contracts/tar-recovery";
 import {
   publicClient,
   tarRecoveryExecutorAddress,
+  tarRecoveryExecutorV2Address,
   webAuthnValidatorAddress,
 } from "@/lib/kernel/config";
 import { createBroadcasterWalletClient } from "@/lib/recovery/broadcaster";
 import { useRecoveryStore } from "@/lib/store/recovery";
+import { useWatchTowerStore } from "@/lib/store/watch-towers";
+import { useWalletStore } from "@/lib/store/wallet";
+import { prepareDefenseGroupMembers } from "@/lib/watch-tower-policy";
 
 const EXECUTOR_MODULE_TYPE = BigInt(2);
 const REVEALED_STATUS = 1;
@@ -172,6 +177,11 @@ export function useTarRecoveryPreflight(accountAddress?: Address) {
 export function useUpdateRecoveryParams() {
   const transaction = useSendKernelTransaction();
   const { address: accountAddress } = useKernelAccount();
+  const credentialId = useWalletStore((state) => state.credentialId);
+  const watchTowers = useWatchTowerStore((state) => state.watchTowers);
+  const advanceWatchTowerCommitments = useWatchTowerStore(
+    (state) => state.advanceWatchTowerCommitments,
+  );
 
   const updateRecoveryParams = async (
     lockValue: number,
@@ -187,6 +197,7 @@ export function useUpdateRecoveryParams() {
 
     const lockValueWei = parseEther(lockValue.toString());
     const lockTimeSeconds = lockTimeToSeconds(lockTimeValue, lockTimeUnit);
+    const recoveryV2Address = tarRecoveryExecutorV2Address;
 
     const accountCode = await publicClient.getCode({ address: accountAddress });
     const isAccountDeployed = accountCode !== undefined && accountCode !== "0x";
@@ -198,6 +209,36 @@ export function useUpdateRecoveryParams() {
           args: [EXECUTOR_MODULE_TYPE, tarRecoveryExecutorAddress, "0x"],
         })
       : false;
+    const isV2Executor =
+      recoveryV2Address !== null &&
+      tarRecoveryExecutorAddress === recoveryV2Address;
+    const currentGroupId =
+      isV2Executor && isAccountDeployed
+        ? await publicClient.readContract({
+            abi: tarRecoveryExecutorV2Abi,
+            address: recoveryV2Address!,
+            functionName: "groupOf",
+            args: [accountAddress],
+          })
+        : BigInt(0);
+    let defaultGroupMembers: string[] | null = null;
+    if (isV2Executor && currentGroupId === BigInt(0)) {
+      if (!credentialId) throw new Error("Passkey credential not found.");
+      const epoch = isAccountDeployed
+        ? await publicClient.readContract({
+            abi: tarRecoveryExecutorV2Abi,
+            address: recoveryV2Address!,
+            functionName: "epochOf",
+            args: [accountAddress],
+          })
+        : BigInt(0);
+      defaultGroupMembers = await prepareDefenseGroupMembers(
+        accountAddress,
+        credentialId,
+        watchTowers,
+        Number(epoch),
+      );
+    }
 
     const calls: KernelCall[] = [];
 
@@ -225,7 +266,22 @@ export function useUpdateRecoveryParams() {
       });
     }
 
-    return transaction.sendTransaction(calls);
+    if (isV2Executor && defaultGroupMembers) {
+      calls.push({
+        to: recoveryV2Address!,
+        data: encodeFunctionData({
+          abi: tarRecoveryExecutorV2Abi,
+          functionName: "regenerateWatchTowerGroup",
+          args: [defaultGroupMembers.map((member) => BigInt(member))],
+        }),
+      });
+    }
+
+    const transactionHash = await transaction.sendTransaction(calls);
+    if (defaultGroupMembers) {
+      advanceWatchTowerCommitments(watchTowers.map((tower) => tower.id));
+    }
+    return transactionHash;
   };
 
   return {
