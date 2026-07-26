@@ -146,6 +146,7 @@
         "enrollmentReady": "Enrollment scanned",
         "commitmentCount": "{count} rotating identities received",
         "confirmAddButton": "Add watch tower",
+        "updatingPolicy": "Verifying passkey and updating…",
         "addSuccess": "Watch tower enrollment saved.",
         "removeTitle": "Remove watch tower?",
         "removeSubtitle": "{label} will no longer be authorized to veto recoveries for this wallet.",

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
 import { useKernelAccount } from "@/hooks/use-kernel";
+import { useRegenerateWatchTowerGroup } from "@/hooks/use-watch-tower-policy";
 import { chain } from "@/lib/kernel/config";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import type { WatchTowerEnrollment } from "@/lib/watch-tower-enrollment";
@@ -33,8 +34,18 @@ export function WatchTowersDrawer({
   const t = useTranslations("App.Recovery.WatchTowersDrawer");
   const tCommon = useTranslations("Common");
   const { address: ownerAddress } = useKernelAccount();
-  const { watchTowers, hasHydrated, addWatchTower, removeWatchTower } =
-    useWatchTowerStore();
+  const {
+    watchTowers,
+    hasHydrated,
+    addWatchTower,
+    advanceWatchTowerCommitments,
+    removeWatchTower,
+  } = useWatchTowerStore();
+  const {
+    regenerate,
+    isConfigured,
+    isPending: isUpdatingPolicy,
+  } = useRegenerateWatchTowerGroup();
   const [addOpen, setAddOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [enrollment, setEnrollment] = useState<WatchTowerEnrollment | null>(
@@ -79,21 +90,46 @@ export function WatchTowersDrawer({
     setEnrollment(nextEnrollment);
   }
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!enrollment || !labelValid || duplicateEnrollment || isAtLimit) return;
-    addWatchTower(createWatchTower(label, enrollment));
-    toast.success(t("addSuccess"));
-    resetAddFlow();
+    const watchTower = createWatchTower(label, enrollment);
+
+    try {
+      const nextWatchTowers = [...watchTowers, watchTower];
+      if (isConfigured) await regenerate(nextWatchTowers);
+
+      addWatchTower(watchTower);
+      if (isConfigured) {
+        advanceWatchTowerCommitments(nextWatchTowers.map((tower) => tower.id));
+      }
+      toast.success(t("addSuccess"));
+      resetAddFlow();
+    } catch {
+      toast.error(tCommon("error"));
+    }
   }
 
-  function handleRemove() {
+  async function handleRemove() {
     if (!towerToRemove) return;
-    removeWatchTower(towerToRemove.id);
-    toast.success(t("removeSuccess"));
-    setTowerToRemove(null);
+    try {
+      const nextWatchTowers = watchTowers.filter(
+        (tower) => tower.id !== towerToRemove.id,
+      );
+      if (isConfigured) await regenerate(nextWatchTowers);
+
+      removeWatchTower(towerToRemove.id);
+      if (isConfigured) {
+        advanceWatchTowerCommitments(nextWatchTowers.map((tower) => tower.id));
+      }
+      toast.success(t("removeSuccess"));
+      setTowerToRemove(null);
+    } catch {
+      toast.error(tCommon("error"));
+    }
   }
 
   function handleDrawerChange(nextOpen: boolean) {
+    if (!nextOpen && isUpdatingPolicy) return;
     if (!nextOpen) {
       setScannerOpen(false);
       resetAddFlow();
@@ -193,7 +229,7 @@ export function WatchTowersDrawer({
       <BottomSheet
         open={addOpen}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) resetAddFlow();
+          if (!nextOpen && !isUpdatingPolicy) resetAddFlow();
         }}
         title={t("labelTitle")}
       >
@@ -238,17 +274,21 @@ export function WatchTowersDrawer({
           className="w-full"
           onClick={handleAdd}
           disabled={
-            !labelValid || !enrollment || duplicateEnrollment || isAtLimit
+            !labelValid ||
+            !enrollment ||
+            duplicateEnrollment ||
+            isAtLimit ||
+            isUpdatingPolicy
           }
         >
-          {t("confirmAddButton")}
+          {isUpdatingPolicy ? t("updatingPolicy") : t("confirmAddButton")}
         </Button>
       </BottomSheet>
 
       <BottomSheet
         open={towerToRemove !== null}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) setTowerToRemove(null);
+          if (!nextOpen && !isUpdatingPolicy) setTowerToRemove(null);
         }}
         title={t("removeTitle")}
       >
@@ -261,14 +301,16 @@ export function WatchTowersDrawer({
             variant="destructive"
             className="w-full"
             onClick={handleRemove}
+            disabled={isUpdatingPolicy}
           >
-            {t("confirmRemoveButton")}
+            {isUpdatingPolicy ? t("updatingPolicy") : t("confirmRemoveButton")}
           </Button>
           <Button
             size="lg"
             variant="secondary"
             className="w-full"
             onClick={() => setTowerToRemove(null)}
+            disabled={isUpdatingPolicy}
           >
             {tCommon("cancel")}
           </Button>

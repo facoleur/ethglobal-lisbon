@@ -22,6 +22,7 @@ import { SettingsMenuItem } from "@/components/settings/settings-menu-item";
 import { TarDrawer } from "@/components/settings/tar-drawer";
 import { Button } from "@/components/ui/button";
 import { useKernelAccount } from "@/hooks/use-kernel";
+import { useRecoveryAttemptSync } from "@/hooks/use-recovery-attempt-sync";
 import {
   groupRecoveryAttempts,
   simulateRecoveryAttempt,
@@ -60,6 +61,8 @@ export function RecoveryCenter() {
   const [simulatingRole, setSimulatingRole] = useState<
     "owner" | "watchTower" | null
   >(null);
+
+  useRecoveryAttemptSync(t("myWallet"));
 
   useEffect(() => {
     if (attempts.length === 0) return;

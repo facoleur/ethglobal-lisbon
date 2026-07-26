@@ -20,11 +20,32 @@ export const webAuthnValidatorAddress = getAddress(
 
 const configuredTarRecoveryExecutorAddress =
   process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_ADDRESS?.trim();
+const configuredTarRecoveryExecutorV2Address =
+  process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_V2_ADDRESS?.trim();
 
-export const tarRecoveryExecutorAddress: Address | null =
-  configuredTarRecoveryExecutorAddress
-    ? getAddress(configuredTarRecoveryExecutorAddress)
+export const tarRecoveryExecutorV2Address: Address | null =
+  configuredTarRecoveryExecutorV2Address
+    ? getAddress(configuredTarRecoveryExecutorV2Address)
     : null;
+
+// V2 preserves the V1 recovery interface, so it becomes the active executor when configured.
+export const tarRecoveryExecutorAddress: Address | null =
+  tarRecoveryExecutorV2Address ??
+  (configuredTarRecoveryExecutorAddress
+    ? getAddress(configuredTarRecoveryExecutorAddress)
+    : null);
+
+export const semaphoreAddress = getAddress(
+  "0x1e0d7FF1610e480fC93BdEC510811ea2Ba6d7c2f",
+);
+
+const configuredTarRecoveryExecutorV2DeploymentBlock =
+  process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_V2_DEPLOYMENT_BLOCK?.trim();
+
+export const tarRecoveryExecutorV2DeploymentBlock =
+  configuredTarRecoveryExecutorV2DeploymentBlock
+    ? BigInt(configuredTarRecoveryExecutorV2DeploymentBlock)
+    : BigInt(0);
 
 export const sepoliaRpcUrl =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL?.trim() ||

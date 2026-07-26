@@ -7,6 +7,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { haptic } from "@/lib/haptics";
+import { tarRecoveryExecutorV2Address } from "@/lib/kernel/config";
 import { formatCountdown, truncateAddress } from "@/lib/recovery";
 import {
   getAttemptProgressRemaining,
@@ -14,6 +15,9 @@ import {
   simulateResolveRecoveryAttempt,
   type RecoveryAttempt,
 } from "@/lib/recovery-center";
+import { useWatchTowerStore } from "@/lib/store/watch-towers";
+import { useWalletStore } from "@/lib/store/wallet";
+import { vetoAsOwner, vetoAsWatchTower } from "@/lib/watch-tower-policy";
 
 type RecoveryAttemptDrawerProps = {
   attempt: RecoveryAttempt | null;
@@ -28,6 +32,11 @@ export function RecoveryAttemptDrawer({
 }: RecoveryAttemptDrawerProps) {
   const t = useTranslations("App.Recovery.AttemptDrawer");
   const tCommon = useTranslations("Common");
+  const credentialId = useWalletStore((state) => state.credentialId);
+  const watchedWallets = useWatchTowerStore((state) => state.watchedWallets);
+  const setWatchedWalletEpoch = useWatchTowerStore(
+    (state) => state.setWatchedWalletEpoch,
+  );
   const [now, setNow] = useState(() => Date.now());
   const [pendingAction, setPendingAction] = useState<
     "veto" | "acknowledge" | null
@@ -53,7 +62,23 @@ export function RecoveryAttemptDrawer({
     haptic(action === "veto" ? "heavy" : "medium");
     setPendingAction(action);
     try {
-      await simulateResolveRecoveryAttempt();
+      if (action === "veto" && tarRecoveryExecutorV2Address) {
+        if (currentAttempt.role === "owner") {
+          if (!credentialId) throw new Error("Passkey credential not found.");
+          await vetoAsOwner(currentAttempt.targetAddress, credentialId);
+        } else {
+          const wallet = watchedWallets.find(
+            (candidate) =>
+              candidate.address.toLowerCase() ===
+              currentAttempt.targetAddress.toLowerCase(),
+          );
+          if (!wallet) throw new Error("Watched wallet identity not found.");
+          const result = await vetoAsWatchTower(wallet);
+          setWatchedWalletEpoch(wallet.id, Number(result.policy.epoch));
+        }
+      } else {
+        await simulateResolveRecoveryAttempt();
+      }
       onResolved(currentAttempt.id);
       toast.success(action === "veto" ? t("vetoSuccess") : t("allowSuccess"));
       onClose();
