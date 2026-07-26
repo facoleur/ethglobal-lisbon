@@ -7,6 +7,7 @@ type PersistedWalletState = {
   credentialId: string | null;
   accountAddress: string | null;
   publicKey: string | null;
+  isSetupComplete: boolean;
 };
 
 type WalletState = PersistedWalletState & {
@@ -17,6 +18,7 @@ type WalletState = PersistedWalletState & {
     accountAddress: string,
     publicKey: string,
   ) => void;
+  setSetupComplete: () => void;
   clear: () => void;
 };
 
@@ -28,10 +30,17 @@ export const useWalletStore = create<WalletState>()(
       credentialId: null,
       accountAddress: null,
       publicKey: null,
+      isSetupComplete: false,
       setCredential: (credentialId, accountAddress, publicKey) =>
         set({ credentialId, accountAddress, publicKey }),
+      setSetupComplete: () => set({ isSetupComplete: true }),
       clear: () =>
-        set({ credentialId: null, accountAddress: null, publicKey: null }),
+        set({
+          credentialId: null,
+          accountAddress: null,
+          publicKey: null,
+          isSetupComplete: false,
+        }),
     }),
     {
       name: "tar-wallet",
@@ -40,6 +49,7 @@ export const useWalletStore = create<WalletState>()(
         credentialId: state.credentialId,
         accountAddress: state.accountAddress,
         publicKey: state.publicKey,
+        isSetupComplete: state.isSetupComplete,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

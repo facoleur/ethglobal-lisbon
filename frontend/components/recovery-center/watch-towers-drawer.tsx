@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, ScanLine, ShieldCheck, Trash2, X } from "lucide-react";
+import { Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { AddressInput } from "@/components/ui/address-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
@@ -215,23 +216,14 @@ export function WatchTowersDrawer({
         </div>
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">{t("secretLabel")}</label>
-          <div className="relative">
-            <Input
-              value={secret}
-              onChange={(event) => setSecret(event.target.value)}
-              placeholder={t("secretPlaceholder")}
-              className="pr-12"
-              aria-invalid={duplicateSecret}
-            />
-            <button
-              type="button"
-              onClick={() => setScannerOpen(true)}
-              aria-label={t("scanSecretLabel")}
-              className="text-muted-foreground absolute top-1/2 right-4 -translate-y-1/2"
-            >
-              <ScanLine className="size-5" />
-            </button>
-          </div>
+          <AddressInput
+            value={secret}
+            onChange={(event) => setSecret(event.target.value)}
+            placeholder={t("secretPlaceholder")}
+            aria-invalid={duplicateSecret}
+            onScanClick={() => setScannerOpen(true)}
+            scanAriaLabel={t("scanSecretLabel")}
+          />
           {duplicateSecret && (
             <p className="text-destructive text-sm">{t("duplicateSecret")}</p>
           )}

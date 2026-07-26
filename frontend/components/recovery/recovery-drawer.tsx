@@ -5,12 +5,11 @@ import { StepWaiting } from "@/components/recovery/step-waiting";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
-import { Input } from "@/components/ui/input";
+import { AddressInput } from "@/components/ui/address-input";
 import { QrScanner } from "@/components/ui/qr-scanner";
 import { useTarRecoveryPreflight } from "@/hooks/use-tar-recovery";
 import { BROADCASTER_GAS_BUFFER } from "@/lib/recovery";
 import { useRecoveryStore } from "@/lib/store/recovery";
-import { ScanLine } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { getAddress, isAddress } from "viem";
@@ -95,23 +94,14 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
       >
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">{t("addressLabel")}</label>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setScannerOpen(true)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-              aria-label={t("scanAddress")}
-            >
-              <ScanLine className="size-5" />
-            </button>
-            <Input
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              placeholder={t("addressPlaceholder")}
-              aria-invalid={touched && !valid}
-              className="pl-12"
-            />
-          </div>
+          <AddressInput
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            placeholder={t("addressPlaceholder")}
+            aria-invalid={touched && !valid}
+            onScanClick={() => setScannerOpen(true)}
+            scanAriaLabel={t("scanAddress")}
+          />
           {valid && preflight.status === "checking" && (
             <p className="text-muted-foreground text-xs">
               {t("checkingAccount")}

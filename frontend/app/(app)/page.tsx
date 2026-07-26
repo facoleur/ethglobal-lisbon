@@ -3,6 +3,7 @@
 import { ReceiveDrawer } from "@/components/receive/receive-drawer";
 import { RecoverySummaryCard } from "@/components/recovery-center/recovery-summary-card";
 import { SendDrawer } from "@/components/send/send-drawer";
+import { SetupBanner } from "@/components/setup-banner";
 import { AccountAvatar } from "@/components/ui/account-avatar";
 import { ActionButton } from "@/components/ui/action-button";
 import { useKernelAccount, useKernelBalance } from "@/hooks/use-kernel";
@@ -30,6 +31,9 @@ export default function HomePage() {
   return (
     <>
       <div className="flex flex-col gap-8">
+        {/* setup banner */}
+        <SetupBanner />
+
         {/* account section */}
         {address && (
           <div className="flex items-center gap-3">

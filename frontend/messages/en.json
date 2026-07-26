@@ -69,6 +69,10 @@
     }
   },
   "App": {
+    "SetupBanner": {
+      "title": "Finish setting up your wallet",
+      "subtitle": "Configure your lock time and lock value to activate recovery protection."
+    },
     "Home": {
       "balanceLabel": "Balance",
       "sendButton": "Send",
@@ -203,6 +207,8 @@
       "title": "Send ETH",
       "recipientLabel": "Recipient address",
       "recipientPlaceholder": "Recipient address (0x...)",
+      "scanAddress": "Scan recipient address",
+      "invalidQr": "This QR code does not contain a valid Ethereum address.",
       "amountLabel": "Amount in ETH",
       "amountPlaceholder": "Amount (ETH)",
       "confirmButton": "Confirm",

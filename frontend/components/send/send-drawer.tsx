@@ -4,11 +4,15 @@ import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { isAddress, parseEther } from "viem";
 import { toast } from "sonner";
+import { AddressInput } from "@/components/ui/address-input";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { QrScanner } from "@/components/ui/qr-scanner";
 import { useSendKernelTransaction } from "@/hooks/use-kernel";
 import { getErrorMessage } from "@/lib/errors";
+import { haptic } from "@/lib/haptics";
+import { parseEthereumQr } from "@/lib/qr";
 
 type SendDrawerProps = {
   open: boolean;
@@ -19,15 +23,16 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
   const t = useTranslations("App.SendDrawer");
   const formRef = useRef<HTMLFormElement>(null);
   const { sendTransaction, isPending } = useSendKernelTransaction();
-  const [recipientFilled, setRecipientFilled] = useState(false);
+  const [recipient, setRecipient] = useState("");
   const [amountFilled, setAmountFilled] = useState(false);
-  const canSubmit = recipientFilled && amountFilled;
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const canSubmit = recipient.trim() !== "" && amountFilled;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isPending) return;
     if (!nextOpen) {
       formRef.current?.reset();
-      setRecipientFilled(false);
+      setRecipient("");
       setAmountFilled(false);
     }
     onOpenChange(nextOpen);
@@ -37,10 +42,10 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const recipient = formData.get("recipient");
+    const recipientValue = formData.get("recipient");
     const amount = formData.get("amount");
 
-    if (typeof recipient !== "string" || !isAddress(recipient)) {
+    if (typeof recipientValue !== "string" || !isAddress(recipientValue)) {
       toast.error(t("invalidRecipient"));
       return;
     }
@@ -64,9 +69,10 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
     }
 
     try {
-      await sendTransaction([{ to: recipient, value }]);
+      await sendTransaction([{ to: recipientValue, value }]);
       toast.success(t("success"));
       formRef.current?.reset();
+      setRecipient("");
       onOpenChange(false);
     } catch (cause) {
       toast.error(t("sendFailed", { message: getErrorMessage(cause) }));
@@ -74,43 +80,66 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
   };
 
   return (
-    <BottomSheet open={open} onOpenChange={handleOpenChange} title={t("title")}>
-      <form
-        ref={formRef}
-        className="flex flex-col gap-4"
-        onSubmit={handleSubmit}
+    <>
+      <BottomSheet
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={t("title")}
       >
-        <Input
-          name="recipient"
-          type="text"
-          autoComplete="off"
-          aria-label={t("recipientLabel")}
-          placeholder={t("recipientPlaceholder")}
-          disabled={isPending}
-          required
-          onChange={(e) => setRecipientFilled(e.target.value.trim() !== "")}
-        />
-        <Input
-          name="amount"
-          type="number"
-          min="0"
-          step="any"
-          inputMode="decimal"
-          aria-label={t("amountLabel")}
-          placeholder={t("amountPlaceholder")}
-          disabled={isPending}
-          required
-          onChange={(e) => setAmountFilled(e.target.value.trim() !== "")}
-        />
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full rounded-xl"
-          disabled={isPending || !canSubmit}
+        <form
+          ref={formRef}
+          className="flex flex-col gap-4"
+          onSubmit={handleSubmit}
         >
-          {isPending ? t("sendingButton") : t("confirmButton")}
-        </Button>
-      </form>
-    </BottomSheet>
+          <AddressInput
+            name="recipient"
+            value={recipient}
+            aria-label={t("recipientLabel")}
+            placeholder={t("recipientPlaceholder")}
+            disabled={isPending}
+            required
+            onChange={(e) => setRecipient(e.target.value)}
+            onScanClick={() => setScannerOpen(true)}
+            scanAriaLabel={t("scanAddress")}
+          />
+          <Input
+            name="amount"
+            type="number"
+            min="0"
+            step="any"
+            inputMode="decimal"
+            aria-label={t("amountLabel")}
+            placeholder={t("amountPlaceholder")}
+            disabled={isPending}
+            required
+            onChange={(e) => setAmountFilled(e.target.value.trim() !== "")}
+          />
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full rounded-xl"
+            disabled={isPending || !canSubmit}
+          >
+            {isPending ? t("sendingButton") : t("confirmButton")}
+          </Button>
+        </form>
+      </BottomSheet>
+
+      {scannerOpen && (
+        <QrScanner
+          onDetect={(raw) => {
+            const address = parseEthereumQr(raw);
+            setScannerOpen(false);
+            if (!address) {
+              toast.error(t("invalidQr"));
+              return;
+            }
+            haptic("medium");
+            setRecipient(address);
+          }}
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
+    </>
   );
 }

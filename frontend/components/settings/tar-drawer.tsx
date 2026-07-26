@@ -17,9 +17,10 @@ const RECOMMENDED_LOCK_TIME_UNIT: LockTimeUnit = "days";
 type TarDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 };
 
-export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
+export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
   const t = useTranslations("App.Recovery.TarDrawer");
   const tCommon = useTranslations("Common");
   const { updateRecoveryParams, isConfigured, isPending } =
@@ -40,6 +41,7 @@ export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
       await updateRecoveryParams(lockValue, lockTimeValue, lockTimeUnit);
       toast.success(t("saveSuccess"));
       onOpenChange(false);
+      onSuccess?.();
     } catch {
       toast.error(tCommon("error"));
     }
