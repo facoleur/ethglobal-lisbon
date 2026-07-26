@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+// Shared by V1 and V2 tests: `kernel/utils/ExecLib.sol` itself requires `^0.8.23`, and V2's
+// `TARRecoveryExecutorV2` (imported by V2 test files alongside this mock) is pinned to exactly
+// `0.8.23` by `lib/semaphore` — see `foundry.toml`. `^0.8.23` is the narrowest range compatible
+// with both.
+pragma solidity ^0.8.23;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ExecMode} from "kernel/types/Types.sol";
 import {ExecLib} from "kernel/utils/ExecLib.sol";
-import {ITARRecovery} from "../../src/interfaces/ITARRecovery.sol";
+import {IModule} from "kernel/interfaces/IERC7579Modules.sol";
 
 /// @notice Minimal ERC-7579 account stand-in for Milestone A/B unit tests. Forwards
 /// installModule/uninstallModule to the module's onInstall/onUninstall via a regular external
@@ -26,11 +30,11 @@ contract MockERC7579Account is IERC1271 {
     receive() external payable {}
 
     function installModule(address module, bytes calldata initData) external payable {
-        ITARRecovery(module).onInstall(initData);
+        IModule(module).onInstall(initData);
     }
 
     function uninstallModule(address module, bytes calldata deInitData) external payable {
-        ITARRecovery(module).onUninstall(deInitData);
+        IModule(module).onUninstall(deInitData);
     }
 
     function executeFromExecutor(ExecMode, bytes calldata executionCalldata)

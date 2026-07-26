@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+// Shared by V1 and V2 tests — see `MockERC7579Account.sol` for why `^0.8.23` (not `^0.8.28`) is
+// the range that works for both.
+pragma solidity ^0.8.23;
 
 /// @notice Test double for `finalizeRecovery`'s rotation target. Milestone C tests the
 /// `TARRecoveryExecutor` state machine against this trivial mock, not a real validator — neither

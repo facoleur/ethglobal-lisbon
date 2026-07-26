@@ -13,3 +13,6 @@
 [submodule "contracts/lib/kernel-7579-plugins"]
 	path = contracts/lib/kernel-7579-plugins
 	url = https://github.com/zerodevapp/kernel-7579-plugins
+[submodule "contracts/lib/semaphore"]
+	path = contracts/lib/semaphore
+	url = https://github.com/semaphore-protocol/semaphore.git

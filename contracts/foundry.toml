@@ -4,7 +4,6 @@ out = "out"
 libs = ["lib"]
 test = "test"
 script = "script"
-solc_version = "0.8.28"
 optimizer = true
 optimizer_runs = 200
 via_ir = true
@@ -17,3 +16,11 @@ via_ir = true
 lint_on_build = false
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+# No global `solc_version` (was pinned to 0.8.28): `lib/semaphore` (POC2, added for
+# `TARRecoveryExecutorV2`) hard-pins `pragma solidity 0.8.23;` (exact, no caret) in every file.
+# No single compiler version can satisfy both that exact pin and our own `^0.8.28`/`^0.8.24`
+# pragmas in the same build, so the global pin has to go. Auto-detect now resolves our own
+# `^0.8.2x` sources to the latest installed/available matching solc (verified: full existing
+# test suite still passes under it), while anything importing Semaphore resolves independently
+# to exactly 0.8.23, forced by its own pragma — no restriction needed on our side.
