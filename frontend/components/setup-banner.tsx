@@ -1,18 +1,17 @@
 "use client";
 
-import { useWalletStore } from "@/lib/store/wallet";
 import { AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type SetupBannerProps = {
   onAction: () => void;
+  visible: boolean;
 };
 
-export function SetupBanner({ onAction }: SetupBannerProps) {
+export function SetupBanner({ onAction, visible }: SetupBannerProps) {
   const t = useTranslations("App.SetupBanner");
-  const { isSetupComplete, hasHydrated } = useWalletStore();
 
-  if (!hasHydrated || isSetupComplete) return null;
+  if (!visible) return null;
 
   return (
     <button

@@ -141,7 +141,7 @@ export function ProtectWalletDrawer({
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-white p-4">
+                <div className="rounded-3xl bg-background p-4">
                   <AnimatedQrCode frames={pendingEnrollment.frames} />
                 </div>
 

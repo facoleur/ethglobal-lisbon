@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QrCode } from "@/components/receive/qr-code";
-import { useLoginPasskey } from "@/hooks/use-kernel";
+import { useRestoreRecoveredWallet } from "@/hooks/use-kernel";
 import { useFinalizeTarRecovery } from "@/hooks/use-tar-recovery";
 import { getErrorMessage } from "@/lib/errors";
 import {
   buildEip681Uri,
   computeProgress,
-  FINALIZER_GAS_BUFFER,
+  FINALIZATION_GAS_BUFFER,
   formatCountdown,
   formatEth,
   SEPOLIA_CHAIN_ID,
@@ -30,14 +30,16 @@ export function StepWaiting() {
     status,
     targetAccount,
     broadcasterAddress,
+    credentialId,
+    publicKey,
     committedAt,
     executableAt,
     clear,
   } = useRecoveryStore();
-  const { login, isPending: isLoggingIn } = useLoginPasskey();
+  const recoveredWallet = useRestoreRecoveredWallet();
   const finalization = useFinalizeTarRecovery();
   const [now, setNow] = useState(() => Date.now());
-  const finalizerBalance = useBalance({
+  const broadcasterBalance = useBalance({
     address: broadcasterAddress ?? undefined,
     query: {
       enabled: broadcasterAddress !== null && status === "waiting",
@@ -46,15 +48,15 @@ export function StepWaiting() {
   });
 
   const isReady = executableAt !== null && now >= executableAt;
-  const isFinalizerFunded =
-    finalizerBalance.data !== undefined &&
-    finalizerBalance.data.value >= FINALIZER_GAS_BUFFER;
+  const isCompletionFunded =
+    broadcasterBalance.data !== undefined &&
+    broadcasterBalance.data.value >= FINALIZATION_GAS_BUFFER;
   const timeLeft = executableAt !== null ? Math.max(0, executableAt - now) : 0;
   const progressPercent = computeProgress(committedAt, executableAt, now);
-  const finalizerFundingUri = buildEip681Uri(
+  const completionFundingUri = buildEip681Uri(
     broadcasterAddress ?? "0x0000000000000000000000000000000000000000",
     SEPOLIA_CHAIN_ID,
-    FINALIZER_GAS_BUFFER,
+    FINALIZATION_GAS_BUFFER,
   );
 
   useEffect(() => {
@@ -64,34 +66,42 @@ export function StepWaiting() {
   }, [status]);
 
   async function handleFinalize() {
+    if (!targetAccount || !credentialId || !publicKey) {
+      toast.error(tCommon("error"));
+      return;
+    }
+
     try {
       await finalization.finalize();
+      await recoveredWallet.restore(credentialId, publicKey, targetAccount);
+      clear();
+      router.replace("/");
     } catch (e) {
       toast.error(getErrorMessage(e));
     }
   }
 
-  async function handleCopyFinalizerAddress() {
+  async function handleCopyFundingAddress() {
     if (!broadcasterAddress) return;
     haptic("light");
     try {
       await navigator.clipboard.writeText(broadcasterAddress);
-      toast.success(t("finalizerAddressCopied"));
+      toast.success(t("completionAddressCopied"));
     } catch (e) {
       toast.error(getErrorMessage(e));
     }
   }
 
   async function handleRecoveredLogin() {
-    if (!targetAccount) {
+    if (!targetAccount || !credentialId || !publicKey) {
       toast.error(tCommon("error"));
       return;
     }
 
     try {
-      await login("TAR Recovery", targetAccount);
+      await recoveredWallet.restore(credentialId, publicKey, targetAccount);
       clear();
-      router.push("/");
+      router.replace("/");
     } catch (e) {
       toast.error(getErrorMessage(e));
     }
@@ -111,11 +121,11 @@ export function StepWaiting() {
             size="lg"
             className="w-full rounded-2xl py-4"
             onClick={handleRecoveredLogin}
-            disabled={isLoggingIn}
-            loading={isLoggingIn}
-            loadingLabel={t("loggingInRecoveredWallet")}
+            disabled={recoveredWallet.isPending}
+            loading={recoveredWallet.isPending}
+            loadingLabel={t("openingRecoveredWallet")}
           >
-            {t("loginRecoveredWallet")}
+            {t("openRecoveredWallet")}
           </Button>
         </div>
       </div>
@@ -172,22 +182,22 @@ export function StepWaiting() {
 
       {isReady && (
         <div className="mt-auto flex flex-col gap-4 pt-8">
-          {!isFinalizerFunded && (
+          {!isCompletionFunded && (
             <div className="flex flex-col items-center gap-3">
-              <QrCode value={finalizerFundingUri} />
+              <QrCode value={completionFundingUri} />
               <p className="text-muted-foreground text-center text-sm">
-                {t("finalizerFundingHint", {
-                  amount: formatEth(FINALIZER_GAS_BUFFER),
+                {t("completionFundingHint", {
+                  amount: formatEth(FINALIZATION_GAS_BUFFER),
                 })}
               </p>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full rounded-xl"
-                onClick={handleCopyFinalizerAddress}
+                onClick={handleCopyFundingAddress}
                 disabled={!broadcasterAddress}
               >
-                {t("copyFinalizerAddress")}
+                {t("copyCompletionAddress")}
               </Button>
             </div>
           )}
@@ -195,13 +205,21 @@ export function StepWaiting() {
             size="lg"
             className="w-full rounded-2xl py-4"
             onClick={handleFinalize}
-            disabled={!isFinalizerFunded || finalization.isPending}
-            loading={finalization.isPending}
-            loadingLabel={t("finalizingButton")}
+            disabled={
+              !isCompletionFunded ||
+              finalization.isPending ||
+              recoveredWallet.isPending
+            }
+            loading={finalization.isPending || recoveredWallet.isPending}
+            loadingLabel={
+              recoveredWallet.isPending
+                ? t("openingRecoveredWallet")
+                : t("finalizingButton")
+            }
           >
-            {isFinalizerFunded
+            {isCompletionFunded
               ? t("finalizeButton")
-              : t("waitingForFinalizerFunds")}
+              : t("waitingForCompletionFunds")}
           </Button>
         </div>
       )}

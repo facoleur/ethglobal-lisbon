@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import { useWalletStore } from "@/lib/store/wallet";
 import {
   createKernelSession,
@@ -29,6 +29,11 @@ type KernelContextValue = {
     mode: PasskeyMode,
     passkeyName: string,
     accountAddress?: Address,
+  ) => Promise<void>;
+  restoreRecoveredWallet: (
+    credentialId: string,
+    publicKey: Hex,
+    accountAddress: Address,
   ) => Promise<void>;
   disconnect: () => void;
 };
@@ -117,6 +122,43 @@ export function KernelProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const restoreRecoveredWallet = async (
+    recoveredCredentialId: string,
+    recoveredPublicKey: Hex,
+    recoveredAccountAddress: Address,
+  ) => {
+    if (isConnecting.current) return;
+
+    isConnecting.current = true;
+    setStatus("connecting");
+    setPendingMode("login");
+    setError(null);
+
+    try {
+      const nextSession = await restoreKernelSession(
+        recoveredCredentialId,
+        recoveredPublicKey,
+        recoveredAccountAddress,
+      );
+      didRestore.current = true;
+      setSession(nextSession);
+      setStatus("connected");
+      setCredential(
+        nextSession.authenticatorId,
+        nextSession.account.address,
+        nextSession.publicKey,
+      );
+    } catch (cause) {
+      setSession(null);
+      setStatus("disconnected");
+      setError(normalizeError(cause));
+      throw cause;
+    } finally {
+      isConnecting.current = false;
+      setPendingMode(null);
+    }
+  };
+
   const disconnect = () => {
     setSession(null);
     setStatus("disconnected");
@@ -126,7 +168,15 @@ export function KernelProvider({ children }: { children: ReactNode }) {
 
   return (
     <KernelContext.Provider
-      value={{ session, status, pendingMode, error, connect, disconnect }}
+      value={{
+        session,
+        status,
+        pendingMode,
+        error,
+        connect,
+        restoreRecoveredWallet,
+        disconnect,
+      }}
     >
       {children}
     </KernelContext.Provider>

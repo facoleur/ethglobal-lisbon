@@ -18,7 +18,7 @@ const RECOMMENDED_LOCK_TIME_UNIT: LockTimeUnit = "days";
 type TarDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
 };
 
 export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
@@ -43,9 +43,9 @@ export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
     setIsSaving(true);
     try {
       await updateRecoveryParams(lockValue, lockTimeValue, lockTimeUnit);
+      await onSuccess?.();
       toast.success(t("saveSuccess"));
       onOpenChange(false);
-      onSuccess?.();
     } catch (cause) {
       toast.error(
         getTransactionErrorMessage(cause, tCommon("revokedPasskeyError")),

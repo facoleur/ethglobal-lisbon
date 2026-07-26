@@ -19,7 +19,7 @@ export function QrCode({ value, size = 200 }: QrCodeProps) {
     generateStyledQRCodeSvg(value, {
       size,
       color: "#000000",
-      backgroundColor: "#FFFFFF",
+      backgroundColor: "var(--background)",
       outerEyeColor: "#000000",
       innerEyeColor: "#000000",
       outerEyeBorderRadius: 8,
