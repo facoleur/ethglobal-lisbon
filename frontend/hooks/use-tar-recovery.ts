@@ -35,6 +35,7 @@ import { useWalletStore } from "@/lib/store/wallet";
 import { prepareDefenseGroupMembers } from "@/lib/watch-tower-policy";
 
 const EXECUTOR_MODULE_TYPE = BigInt(2);
+const NONE_STATUS = 0;
 const REVEALED_STATUS = 1;
 const FINALIZED_STATUS = 3;
 
@@ -470,6 +471,17 @@ export function useFinalizeTarRecovery() {
     setError(null);
 
     try {
+      const currentRecovery = await publicClient.readContract({
+        address: tarRecoveryExecutorAddress,
+        abi: tarRecoveryExecutorAbi,
+        functionName: "recoveries",
+        args: [targetAccount],
+      });
+      if (Number(currentRecovery[5]) === NONE_STATUS) {
+        setStatus("finalized");
+        return null;
+      }
+
       const walletClient = createBroadcasterWalletClient(broadcasterPrivateKey);
       const hash = await walletClient.sendTransaction({
         to: tarRecoveryExecutorAddress,
@@ -490,7 +502,11 @@ export function useFinalizeTarRecovery() {
         functionName: "recoveries",
         args: [targetAccount],
       });
-      if (Number(recoveredState[5]) !== FINALIZED_STATUS) {
+      const recoveredStatus = Number(recoveredState[5]);
+      if (
+        recoveredStatus !== NONE_STATUS &&
+        recoveredStatus !== FINALIZED_STATUS
+      ) {
         throw new Error("Recovery was not finalized on-chain.");
       }
 
