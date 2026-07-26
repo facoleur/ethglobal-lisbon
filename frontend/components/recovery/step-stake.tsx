@@ -194,15 +194,14 @@ export function StepStake() {
             <p className="text-muted-foreground text-center text-xs">
               {t("qrCaption")}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-2 w-full rounded-xl"
-              onClick={handleCopyBroadcasterAddress}
-              disabled={!broadcasterAddress}
-            >
-              {t("copyBroadcasterAddress")}
-            </Button>
+            <div className="mt-2 flex items-center gap-2 rounded-full bg-card px-3 py-2">
+              <span className="size-2 animate-pulse rounded-full bg-foreground" />
+              <p className="text-muted-foreground text-sm">
+                {t("waitingForFundingAmount", {
+                  amount: formatEth(fundingAmount),
+                })}
+              </p>
+            </div>
           </div>
         ) : (
           !isWorking && (
@@ -232,8 +231,15 @@ export function StepStake() {
             {t("startRecoveryButton")}
           </Button>
         ) : (
-          <Button size="lg" className="w-full rounded-2xl py-4" disabled>
-            {t("waitingForFunds")}
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className="w-full rounded-2xl py-4"
+            onClick={handleCopyBroadcasterAddress}
+            disabled={!broadcasterAddress}
+          >
+            {t("copyBroadcasterAddress")}
           </Button>
         )}
       </div>

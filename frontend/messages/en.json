@@ -38,6 +38,7 @@
       "copyBroadcasterAddress": "Copy funding address",
       "broadcasterAddressCopied": "Funding address copied!",
       "waitingForFunds": "Waiting for funds…",
+      "waitingForFundingAmount": "Waiting for {amount} ETH",
       "fundsReadyTitle": "Recovery funded",
       "fundsReadySubtitle": "Everything is ready to create your new passkey.",
       "creatingRecoveryPasskey": "Creating recovery passkey…",
