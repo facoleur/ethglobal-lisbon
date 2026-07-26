@@ -1,6 +1,8 @@
 import {
   createPublicClient,
   createWalletClient,
+  BaseError,
+  ContractFunctionRevertedError,
   getAddress,
   http,
   isAddress,
@@ -141,11 +143,19 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json({ transactionHash });
   } catch (cause) {
+    const reverted =
+      cause instanceof BaseError
+        ? cause.walk((error) => error instanceof ContractFunctionRevertedError)
+        : null;
+    const code =
+      reverted instanceof ContractFunctionRevertedError
+        ? reverted.data?.errorName
+        : undefined;
     console.error("Veto relayer rejected a request", {
-      cause: cause instanceof Error ? cause.name : "UnknownError",
+      cause: code ?? (cause instanceof Error ? cause.name : "UnknownError"),
     });
     return Response.json(
-      { error: "Veto request was rejected." },
+      { code, error: "Veto request was rejected." },
       { status: 400 },
     );
   }

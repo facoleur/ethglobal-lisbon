@@ -45,6 +45,13 @@ export class WatchTowerIdentityNotInGroupError extends Error {
   }
 }
 
+export class WatchTowerProofGenerationError extends Error {
+  constructor() {
+    super("The Semaphore proof could not be generated.");
+    this.name = "WatchTowerProofGenerationError";
+  }
+}
+
 function createDummyCommitment(): string {
   const privateKey = crypto.getRandomValues(new Uint8Array(32));
   return new Identity(privateKey).commitment.toString();
@@ -143,7 +150,12 @@ export async function generateWatchTowerProof({
   }
 
   const identity = identities[identityPoolIndex];
-  const proof = await generateProof(identity, group, message, scope);
+  let proof: SemaphoreProof;
+  try {
+    proof = await generateProof(identity, group, message, scope);
+  } catch {
+    throw new WatchTowerProofGenerationError();
+  }
 
   return {
     commitment: identity.commitment.toString(),

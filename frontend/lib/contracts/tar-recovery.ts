@@ -25,6 +25,11 @@ export const tarRecoveryExecutorAbi = parseAbi([
 ]);
 
 export const tarRecoveryExecutorV2Abi = parseAbi([
+  "error RecoveryNotRevealed(address account)",
+  "error WatchTowerGroupNotConfigured()",
+  "error ScopeMismatch()",
+  "error InvalidWatchTowerProof()",
+  "error TransferFailed()",
   "function regenerateWatchTowerGroup(uint256[] members)",
   "function challengeRecovery(address addressToRecover, (uint256 merkleTreeDepth, uint256 merkleTreeRoot, uint256 nullifier, uint256 message, uint256 scope, uint256[8] points) proof)",
   "function isInitialized(address smartAccount) view returns (bool)",

@@ -34,6 +34,16 @@ export class VetoRelayerUnavailableError extends Error {
   }
 }
 
+export class VetoContractError extends Error {
+  code?: string;
+
+  constructor(code?: string) {
+    super("The veto transaction was rejected by the contract.");
+    this.name = "VetoContractError";
+    this.code = code;
+  }
+}
+
 export async function prepareDefenseGroupMembers(
   protectedWallet: Address,
   credentialId: string,
@@ -185,11 +195,12 @@ async function submitVeto(
     }),
   });
   const body = (await response.json()) as {
+    code?: string;
     error?: string;
     transactionHash?: `0x${string}`;
   };
   if (!response.ok || !body.transactionHash) {
-    throw new Error(body.error || "Veto submission failed.");
+    throw new VetoContractError(body.code);
   }
 
   await publicClient.waitForTransactionReceipt({ hash: body.transactionHash });

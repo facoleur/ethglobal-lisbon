@@ -121,6 +121,9 @@
         "vetoSuccess": "Recovery attempt vetoed.",
         "vetoFailed": "The veto could not be submitted.",
         "relayerUnavailable": "The veto relayer is not configured.",
+        "identityNotInGroup": "This passkey identity is not in the active defense group.",
+        "proofGenerationFailed": "The Semaphore proof could not be generated.",
+        "contractRejected": "The contract rejected the veto ({code}).",
         "allowSuccess": "Recovery attempt acknowledged."
       },
       "EnrollmentQrScanner": {

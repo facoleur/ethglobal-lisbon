@@ -20,8 +20,13 @@ import { useWalletStore } from "@/lib/store/wallet";
 import {
   vetoAsOwner,
   vetoAsWatchTower,
+  VetoContractError,
   VetoRelayerUnavailableError,
 } from "@/lib/watch-tower-policy";
+import {
+  WatchTowerIdentityNotInGroupError,
+  WatchTowerProofGenerationError,
+} from "@/lib/watch-tower-proof";
 
 type RecoveryAttemptDrawerProps = {
   attempt: RecoveryAttempt | null;
@@ -86,11 +91,17 @@ export function RecoveryAttemptDrawer({
       toast.success(action === "veto" ? t("vetoSuccess") : t("allowSuccess"));
       onClose();
     } catch (error) {
-      toast.error(
-        error instanceof VetoRelayerUnavailableError
-          ? t("relayerUnavailable")
-          : t("vetoFailed"),
-      );
+      let message = t("vetoFailed");
+      if (error instanceof VetoRelayerUnavailableError) {
+        message = t("relayerUnavailable");
+      } else if (error instanceof WatchTowerIdentityNotInGroupError) {
+        message = t("identityNotInGroup");
+      } else if (error instanceof WatchTowerProofGenerationError) {
+        message = t("proofGenerationFailed");
+      } else if (error instanceof VetoContractError) {
+        message = t("contractRejected", { code: error.code ?? "unknown" });
+      }
+      toast.error(message);
     } finally {
       setPendingAction(null);
     }
