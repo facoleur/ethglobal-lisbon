@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useBalance } from "wagmi";
 import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Copy } from "lucide-react";
 import { AccountAvatar } from "@/components/ui/account-avatar";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "@/components/receive/qr-code";
@@ -190,12 +190,7 @@ export function StepStake() {
 
         {!hasPassedFunding ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="relative">
-              <p className="text-muted-foreground absolute bottom-full left-1/2 mb-2 -translate-x-1/2 text-center text-sm whitespace-nowrap">
-                {t("qrCaption")}
-              </p>
-              <QrCode value={eip681Uri} />
-            </div>
+            <QrCode value={eip681Uri} />
           </div>
         ) : (
           !isWorking && (
@@ -233,6 +228,7 @@ export function StepStake() {
             onClick={handleCopyBroadcasterAddress}
             disabled={!broadcasterAddress}
           >
+            <Copy className="size-5" />
             {t("copyBroadcasterAddress")}
           </Button>
         )}
