@@ -101,6 +101,7 @@ export function StepStake() {
           salt,
           commitment,
         });
+        setIsCreatingPasskey(false);
       } catch (e) {
         toast.error(getErrorMessage(e));
         setIsCreatingPasskey(false);
