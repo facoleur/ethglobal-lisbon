@@ -190,7 +190,7 @@ export function StepStake() {
 
         {!hasPassedFunding ? (
           <div className="flex flex-1 items-center justify-center">
-            <QrCode value={eip681Uri} />
+            <QrCode value={eip681Uri} size={230} />
           </div>
         ) : (
           !isWorking && (
