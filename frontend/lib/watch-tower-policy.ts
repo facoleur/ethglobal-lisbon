@@ -1,8 +1,5 @@
 import { keccak256, stringToHex, type Address } from "viem";
-import {
-  semaphoreGroupsAbi,
-  tarRecoveryExecutorV2Abi,
-} from "@/lib/contracts/tar-recovery";
+import { tarRecoveryExecutorV2Abi } from "@/lib/contracts/tar-recovery";
 import {
   chain,
   getBrowserPasskeyRpId,
@@ -83,7 +80,7 @@ export async function getDefensePolicy(
     throw new Error("TAR Recovery V2 deployment block is not configured.");
   }
 
-  const [epoch, groupId, semaphoreAddress] = await Promise.all([
+  const [epoch, groupId] = await Promise.all([
     publicClient.readContract({
       abi: tarRecoveryExecutorV2Abi,
       address: tarRecoveryExecutorV2Address,
@@ -96,45 +93,31 @@ export async function getDefensePolicy(
       functionName: "groupOf",
       args: [protectedWallet],
     }),
-    publicClient.readContract({
-      abi: tarRecoveryExecutorV2Abi,
-      address: tarRecoveryExecutorV2Address,
-      functionName: "semaphore",
-    }),
   ]);
   if (groupId === BigInt(0)) {
     throw new Error("This wallet has no defense group.");
   }
 
-  const [merkleTreeRoot, events] = await Promise.all([
-    publicClient.readContract({
-      abi: semaphoreGroupsAbi,
-      address: semaphoreAddress,
-      functionName: "getMerkleTreeRoot",
-      args: [groupId],
-    }),
-    publicClient.getContractEvents({
-      abi: semaphoreGroupsAbi,
-      address: semaphoreAddress,
-      eventName: "MembersAdded",
-      args: { groupId },
-      fromBlock: tarRecoveryExecutorV2DeploymentBlock,
-      toBlock: "latest",
-    }),
-  ]);
-  const event = events.at(-1);
-  if (
-    !event?.args.identityCommitments ||
-    event.args.identityCommitments.length !== 16 ||
-    event.args.merkleTreeRoot !== merkleTreeRoot
-  ) {
+  const response = await fetch(`/api/defense-group?groupId=${groupId}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
     throw new Error("Defense group members were not found.");
   }
-  const members = event.args.identityCommitments.map((member) =>
-    member.toString(),
-  );
+  const group = (await response.json()) as {
+    members?: string[];
+    merkleTreeRoot?: string;
+  };
+  if (!group.members || !group.merkleTreeRoot) {
+    throw new Error("Defense group members were not found.");
+  }
 
-  return { epoch, groupId, members, merkleTreeRoot };
+  return {
+    epoch,
+    groupId,
+    members: group.members,
+    merkleTreeRoot: BigInt(group.merkleTreeRoot),
+  };
 }
 
 export async function prepareWatchTowerVeto(wallet: WatchedWallet) {
