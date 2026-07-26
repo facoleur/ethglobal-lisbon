@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import {
-  concatHex,
   encodeFunctionData,
+  getAddress,
   parseEther,
   zeroAddress,
   type Address,
@@ -121,10 +121,10 @@ export function useTarRecoveryPreflight(accountAddress?: Address) {
     recoveryResult?.status === "success"
       ? Number(recoveryResult.result[5])
       : null;
-  const expectedRootValidator = concatHex([
-    "0x01",
-    webAuthnValidatorAddress,
-  ]).toLowerCase();
+  const rootValidatorAddress =
+    validatorResult?.status === "success"
+      ? getAddress(`0x${validatorResult.result.slice(-40)}`)
+      : null;
 
   let status: TarRecoveryPreflightStatus = "idle";
   if (accountAddress && !tarRecoveryExecutorAddress) {
@@ -148,11 +148,7 @@ export function useTarRecoveryPreflight(accountAddress?: Address) {
     moduleResult.result !== true
   ) {
     status = "module-missing";
-  } else if (
-    enabled &&
-    (validatorResult?.status !== "success" ||
-      validatorResult.result.toLowerCase() !== expectedRootValidator)
-  ) {
+  } else if (enabled && rootValidatorAddress !== webAuthnValidatorAddress) {
     status = "validator-mismatch";
   } else if (
     enabled &&

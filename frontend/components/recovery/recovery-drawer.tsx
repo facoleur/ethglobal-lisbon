@@ -29,9 +29,10 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const touched = address.length > 0;
-  const valid = isAddress(address);
-  const targetAccount = valid ? getAddress(address) : undefined;
+  const normalizedAddress = address.trim();
+  const touched = normalizedAddress.length > 0;
+  const valid = isAddress(normalizedAddress);
+  const targetAccount = valid ? getAddress(normalizedAddress) : undefined;
   const preflight = useTarRecoveryPreflight(targetAccount);
   const isStakeStep =
     status === "awaiting_funding" ||
@@ -102,6 +103,9 @@ export function RecoveryDrawer({ open, onOpenChange }: RecoveryDrawerProps) {
             onScanClick={() => setScannerOpen(true)}
             scanAriaLabel={t("scanAddress")}
           />
+          {touched && !valid && (
+            <p className="text-destructive text-xs">{t("invalidAddress")}</p>
+          )}
           {valid && preflight.status === "checking" && (
             <p className="text-muted-foreground text-xs">
               {t("checkingAccount")}
