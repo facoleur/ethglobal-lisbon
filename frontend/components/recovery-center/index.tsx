@@ -22,6 +22,7 @@ import { SettingsMenuItem } from "@/components/settings/settings-menu-item";
 import { TarDrawer } from "@/components/settings/tar-drawer";
 import { Button } from "@/components/ui/button";
 import { useKernelAccount } from "@/hooks/use-kernel";
+import { getErrorMessage } from "@/lib/errors";
 import {
   groupRecoveryAttempts,
   simulateRecoveryAttempt,
@@ -41,6 +42,7 @@ export function RecoveryCenter() {
     hasHydrated: attemptsHydrated,
     addAttempt,
     removeAttempt,
+    purgeExpiredWatchTowerAttempts,
   } = useRecoveryCenterStore();
   const {
     watchTowers,
@@ -62,10 +64,18 @@ export function RecoveryCenter() {
   >(null);
 
   useEffect(() => {
+    if (attemptsHydrated) purgeExpiredWatchTowerAttempts(Date.now());
+  }, [attemptsHydrated, purgeExpiredWatchTowerAttempts]);
+
+  useEffect(() => {
     if (attempts.length === 0) return;
-    const interval = setInterval(() => setNow(Date.now()), 1_000);
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setNow(now);
+      purgeExpiredWatchTowerAttempts(now);
+    }, 1_000);
     return () => clearInterval(interval);
-  }, [attempts.length]);
+  }, [attempts.length, purgeExpiredWatchTowerAttempts]);
 
   const groups = groupRecoveryAttempts(attempts);
   const hasAttempts = attempts.length > 0;
@@ -81,8 +91,8 @@ export function RecoveryCenter() {
         targetLabel: t("myWallet"),
       });
       addAttempt(attempt);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setSimulatingRole(null);
     }
@@ -99,8 +109,8 @@ export function RecoveryCenter() {
         targetLabel: wallet.label,
       });
       addAttempt(attempt);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setSimulatingRole(null);
     }
@@ -129,7 +139,7 @@ export function RecoveryCenter() {
               {tCommon("loading")}
             </div>
           ) : !hasAttempts ? (
-            <div className="flex items-center gap-3 rounded-2xl bg-card p-4">
+            <div className="flex items-center gap-3 rounded-2xl bg-card/60 p-4">
               <CheckCircle2 className="size-6 shrink-0" />
               <div>
                 <p className="font-medium">{t("noAttemptsTitle")}</p>
@@ -139,7 +149,7 @@ export function RecoveryCenter() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
               <AttemptGroup
                 attempts={groups.owner}
                 now={now}
@@ -147,7 +157,6 @@ export function RecoveryCenter() {
                 onSelect={setSelectedAttempt}
               />
               <AttemptGroup
-                title={t("walletsIProtect")}
                 attempts={groups.watchTower}
                 now={now}
                 expiredLabel={t("expired")}
@@ -237,26 +246,30 @@ export function RecoveryCenter() {
               <FlaskConical className="size-4" />
               <h2 className="text-sm font-semibold">{t("devTools")}</h2>
             </div>
-            <button
+            <Button
               type="button"
-              className="text-muted-foreground text-left text-xs underline"
+              size="xs"
+              variant="link"
+              className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline"
               onClick={handleSimulateOwnerAttempt}
               disabled={simulatingRole !== null || !accountAddress}
+              loading={simulatingRole === "owner"}
+              loadingLabel={t("simulating")}
             >
-              {simulatingRole === "owner"
-                ? t("simulating")
-                : t("simulateOwnerAttempt")}
-            </button>
-            <button
+              {t("simulateOwnerAttempt")}
+            </Button>
+            <Button
               type="button"
-              className="text-muted-foreground text-left text-xs underline disabled:opacity-40"
+              size="xs"
+              variant="link"
+              className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline disabled:opacity-40"
               onClick={handleSimulateWatchTowerAttempt}
               disabled={simulatingRole !== null || watchedWallets.length === 0}
+              loading={simulatingRole === "watchTower"}
+              loadingLabel={t("simulating")}
             >
-              {simulatingRole === "watchTower"
-                ? t("simulating")
-                : t("simulateWatchedAttempt")}
-            </button>
+              {t("simulateWatchedAttempt")}
+            </Button>
           </section>
         )}
 

@@ -40,24 +40,14 @@ export function RemoveAccountDrawer({
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t("title")}>
       <p className="text-sm text-muted-foreground">{t("warning")}</p>
 
-      <div className="flex flex-col gap-1">
-        <Button
-          variant="destructive"
-          size="lg"
-          className="w-full rounded-xl"
-          onClick={handleRemove}
-        >
-          {t("confirmButton")}
-        </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          className="w-full rounded-xl"
-          onClick={() => onOpenChange(false)}
-        >
-          {t("cancelButton")}
-        </Button>
-      </div>
+      <Button
+        variant="destructive"
+        size="lg"
+        className="w-full rounded-xl"
+        onClick={handleRemove}
+      >
+        {t("confirmButton")}
+      </Button>
     </BottomSheet>
   );
 }

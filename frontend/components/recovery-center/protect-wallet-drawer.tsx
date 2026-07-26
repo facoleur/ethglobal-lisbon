@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ScanLine } from "lucide-react";
 import { getAddress, isAddress } from "viem";
 import { toast } from "sonner";
 import { QrCode } from "@/components/receive/qr-code";
 import { AccountAvatar } from "@/components/ui/account-avatar";
+import { AddressInput } from "@/components/ui/address-input";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/ui/qr-scanner";
+import { getErrorMessage } from "@/lib/errors";
 import { truncateAddress } from "@/lib/recovery";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import {
@@ -29,7 +30,6 @@ export function ProtectWalletDrawer({
   onOpenChange,
 }: ProtectWalletDrawerProps) {
   const t = useTranslations("App.Recovery.ProtectWalletDrawer");
-  const tCommon = useTranslations("Common");
   const { watchedWallets, addWatchedWallet } = useWatchTowerStore();
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState("");
@@ -68,8 +68,8 @@ export function ProtectWalletDrawer({
         address: getAddress(address),
       });
       setPendingWallet(wallet);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsGenerating(false);
     }
@@ -83,8 +83,8 @@ export function ProtectWalletDrawer({
       addWatchedWallet(pendingWallet);
       toast.success(t("activateSuccess"));
       handleOpenChange(false);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsActivating(false);
     }
@@ -131,10 +131,10 @@ export function ProtectWalletDrawer({
                   className="w-full"
                   onClick={handleActivate}
                   disabled={isActivating}
+                  loading={isActivating}
+                  loadingLabel={t("activatingButton")}
                 >
-                  {isActivating
-                    ? t("activatingButton")
-                    : t("ownerScannedButton")}
+                  {t("ownerScannedButton")}
                 </Button>
               </div>
             </div>
@@ -164,23 +164,14 @@ export function ProtectWalletDrawer({
                   <label className="text-sm font-medium">
                     {t("addressLabel")}
                   </label>
-                  <div className="relative">
-                    <Input
-                      value={address}
-                      onChange={(event) => setAddress(event.target.value)}
-                      placeholder={t("addressPlaceholder")}
-                      aria-invalid={address.length > 0 && !validAddress}
-                      className="pr-12"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setScannerOpen(true)}
-                      aria-label={t("scanLabel")}
-                      className="text-muted-foreground absolute top-1/2 right-4 -translate-y-1/2"
-                    >
-                      <ScanLine className="size-5" />
-                    </button>
-                  </div>
+                  <AddressInput
+                    value={address}
+                    onChange={(event) => setAddress(event.target.value)}
+                    placeholder={t("addressPlaceholder")}
+                    aria-invalid={address.length > 0 && !validAddress}
+                    onScanClick={() => setScannerOpen(true)}
+                    scanAriaLabel={t("scanLabel")}
+                  />
                   {isDuplicate && (
                     <p className="text-destructive text-sm">
                       {t("duplicateWallet")}
@@ -197,8 +188,10 @@ export function ProtectWalletDrawer({
                   disabled={
                     !validAddress || !labelValid || isDuplicate || isGenerating
                   }
+                  loading={isGenerating}
+                  loadingLabel={t("generatingButton")}
                 >
-                  {isGenerating ? t("generatingButton") : t("generateButton")}
+                  {t("generateButton")}
                 </Button>
               </div>
             </div>
