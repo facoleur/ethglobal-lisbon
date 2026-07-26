@@ -66,8 +66,10 @@ export function StopWatchingDrawer({
         className="w-full"
         onClick={handleRemove}
         disabled={isRemoving}
+        loading={isRemoving}
+        loadingLabel={t("removingButton")}
       >
-        {isRemoving ? t("removingButton") : t("confirmButton")}
+        {t("confirmButton")}
       </Button>
     </BottomSheet>
   );

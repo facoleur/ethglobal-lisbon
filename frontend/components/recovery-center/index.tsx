@@ -246,26 +246,30 @@ export function RecoveryCenter() {
               <FlaskConical className="size-4" />
               <h2 className="text-sm font-semibold">{t("devTools")}</h2>
             </div>
-            <button
+            <Button
               type="button"
-              className="text-muted-foreground text-left text-xs underline"
+              size="xs"
+              variant="link"
+              className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline"
               onClick={handleSimulateOwnerAttempt}
               disabled={simulatingRole !== null || !accountAddress}
+              loading={simulatingRole === "owner"}
+              loadingLabel={t("simulating")}
             >
-              {simulatingRole === "owner"
-                ? t("simulating")
-                : t("simulateOwnerAttempt")}
-            </button>
-            <button
+              {t("simulateOwnerAttempt")}
+            </Button>
+            <Button
               type="button"
-              className="text-muted-foreground text-left text-xs underline disabled:opacity-40"
+              size="xs"
+              variant="link"
+              className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline disabled:opacity-40"
               onClick={handleSimulateWatchTowerAttempt}
               disabled={simulatingRole !== null || watchedWallets.length === 0}
+              loading={simulatingRole === "watchTower"}
+              loadingLabel={t("simulating")}
             >
-              {simulatingRole === "watchTower"
-                ? t("simulating")
-                : t("simulateWatchedAttempt")}
-            </button>
+              {t("simulateWatchedAttempt")}
+            </Button>
           </section>
         )}
 

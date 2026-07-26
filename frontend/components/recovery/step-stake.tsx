@@ -48,6 +48,13 @@ export function StepStake() {
   const isFunded =
     broadcasterBalance.data !== undefined &&
     broadcasterBalance.data.value >= fundingAmount;
+  const canStartRecovery = status === "awaiting_funding" && isFunded;
+  const canResumeRecovery =
+    status === "ready_to_commit" ||
+    status === "requesting" ||
+    status === "waiting_reveal" ||
+    status === "revealing";
+  const hasPassedFunding = isFunded || canResumeRecovery;
 
   const eip681Uri = buildEip681Uri(
     broadcasterAddress ?? "0x0000000000000000000000000000000000000000",
@@ -67,43 +74,46 @@ export function StepStake() {
   }
 
   async function handleCreatePasskeyAndStart() {
-    if (!targetAccount || !broadcasterAddress || !isFunded) return;
+    if (!targetAccount || !broadcasterAddress) return;
+    if (!canStartRecovery && !canResumeRecovery) return;
 
-    setIsCreatingPasskey(true);
-    try {
-      const credential = await createPasskeyCredential(
-        "register",
-        "TAR Recovery",
-      );
-      const salt = generateRecoverySalt();
-      const commitment = computeRecoveryCommitment({
-        addressToRecover: targetAccount,
-        broadcasterAddress,
-        pubKeyX: credential.pubKeyX,
-        pubKeyY: credential.pubKeyY,
-        salt,
-      });
-      setRecoverySigner({
-        credentialId: credential.authenticatorId,
-        publicKey: credential.publicKey,
-        pubKeyX: credential.pubKeyX,
-        pubKeyY: credential.pubKeyY,
-        salt,
-        commitment,
-      });
-    } catch (e) {
-      toast.error(getErrorMessage(e));
-      setIsCreatingPasskey(false);
-      return;
+    if (status === "awaiting_funding") {
+      setIsCreatingPasskey(true);
+      try {
+        const credential = await createPasskeyCredential(
+          "register",
+          "TAR Recovery",
+        );
+        const salt = generateRecoverySalt();
+        const commitment = computeRecoveryCommitment({
+          addressToRecover: targetAccount,
+          broadcasterAddress,
+          pubKeyX: credential.pubKeyX,
+          pubKeyY: credential.pubKeyY,
+          salt,
+        });
+        setRecoverySigner({
+          credentialId: credential.authenticatorId,
+          publicKey: credential.publicKey,
+          pubKeyX: credential.pubKeyX,
+          pubKeyY: credential.pubKeyY,
+          salt,
+          commitment,
+        });
+      } catch (e) {
+        toast.error(getErrorMessage(e));
+        setIsCreatingPasskey(false);
+        return;
+      }
     }
 
     try {
       await recoverySubmission.submit();
     } catch (e) {
       toast.error(getErrorMessage(e));
+    } finally {
+      setIsCreatingPasskey(false);
     }
-
-    setIsCreatingPasskey(false);
   }
 
   const isWorking = isCreatingPasskey || recoverySubmission.isPending;
@@ -184,7 +194,7 @@ export function StepStake() {
         </div>
         <p
           className={
-            isFunded
+            hasPassedFunding
               ? "text-center text-sm font-medium text-foreground"
               : "text-muted-foreground text-center text-sm"
           }
@@ -193,25 +203,27 @@ export function StepStake() {
             ? t("submittingRecovery")
             : isCreatingPasskey
               ? t("creatingRecoveryPasskey")
-              : isFunded
+              : hasPassedFunding
                 ? t("fundsReceived")
                 : t("waitingForFunds")}
         </p>
       </div>
 
       <div className="mt-auto pt-8">
-        {(isFunded && status === "awaiting_funding") || isWorking ? (
+        {canStartRecovery || canResumeRecovery || isWorking ? (
           <Button
             size="lg"
             className="w-full rounded-2xl py-4"
             onClick={handleCreatePasskeyAndStart}
             disabled={isWorking}
+            loading={isWorking}
+            loadingLabel={
+              recoverySubmission.isPending
+                ? t("submittingRecovery")
+                : t("creatingRecoveryPasskey")
+            }
           >
-            {recoverySubmission.isPending
-              ? t("submittingRecovery")
-              : isCreatingPasskey
-                ? t("creatingRecoveryPasskey")
-                : t("startRecoveryButton")}
+            {t("startRecoveryButton")}
           </Button>
         ) : (
           <Button size="lg" className="w-full rounded-2xl py-4" disabled>

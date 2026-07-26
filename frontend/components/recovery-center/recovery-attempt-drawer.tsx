@@ -122,8 +122,10 @@ export function RecoveryAttemptDrawer({
           className="w-full"
           onClick={() => resolve("veto")}
           disabled={isPending || isExpired}
+          loading={pendingAction === "veto"}
+          loadingLabel={t("vetoingButton")}
         >
-          {pendingAction === "veto" ? t("vetoingButton") : t("vetoButton")}
+          {t("vetoButton")}
         </Button>
         {currentAttempt.role === "owner" && (
           <Button
@@ -132,10 +134,10 @@ export function RecoveryAttemptDrawer({
             className="w-full"
             onClick={() => resolve("acknowledge")}
             disabled={isPending}
+            loading={pendingAction === "acknowledge"}
+            loadingLabel={t("allowingButton")}
           >
-            {pendingAction === "acknowledge"
-              ? t("allowingButton")
-              : t("allowButton")}
+            {t("allowButton")}
           </Button>
         )}
       </div>

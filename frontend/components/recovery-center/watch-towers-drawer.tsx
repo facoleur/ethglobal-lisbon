@@ -240,8 +240,10 @@ export function WatchTowersDrawer({
             isAdding ||
             isAtLimit
           }
+          loading={isAdding}
+          loadingLabel={t("addingButton")}
         >
-          {isAdding ? t("addingButton") : t("confirmAddButton")}
+          {t("confirmAddButton")}
         </Button>
       </BottomSheet>
 
@@ -261,8 +263,10 @@ export function WatchTowersDrawer({
           className="w-full"
           onClick={handleRemove}
           disabled={isRemoving}
+          loading={isRemoving}
+          loadingLabel={t("removingButton")}
         >
-          {isRemoving ? t("removingButton") : t("confirmRemoveButton")}
+          {t("confirmRemoveButton")}
         </Button>
       </BottomSheet>
     </>

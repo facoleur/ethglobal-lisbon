@@ -31,13 +31,16 @@ export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
     RECOMMENDED_LOCK_TIME_VALUE,
   );
   const [lockTimeUnit, setLockTimeUnit] = useState(RECOMMENDED_LOCK_TIME_UNIT);
+  const [isSaving, setIsSaving] = useState(false);
+  const isBusy = isSaving || isPending;
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && isPending) return;
+    if (!nextOpen && isBusy) return;
     onOpenChange(nextOpen);
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       await updateRecoveryParams(lockValue, lockTimeValue, lockTimeUnit);
       toast.success(t("saveSuccess"));
@@ -47,6 +50,8 @@ export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
       toast.error(
         getTransactionErrorMessage(cause, tCommon("revokedPasskeyError")),
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -54,7 +59,7 @@ export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
     <Button
       variant="secondary"
       size="xs"
-      disabled={isPending}
+      disabled={isBusy}
       onClick={() => {
         setLockValue(RECOMMENDED_LOCK_VALUE);
         setLockTimeValue(RECOMMENDED_LOCK_TIME_VALUE);
@@ -97,10 +102,12 @@ export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
       <Button
         size="lg"
         className="w-full"
-        disabled={!isConfigured || isPending}
+        disabled={!isConfigured || isBusy}
         onClick={handleSave}
+        loading={isBusy}
+        loadingLabel={t("savingButton")}
       >
-        {isPending ? t("savingButton") : t("saveButton")}
+        {t("saveButton")}
       </Button>
     </BottomSheet>
   );

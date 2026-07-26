@@ -131,10 +131,10 @@ export function ProtectWalletDrawer({
                   className="w-full"
                   onClick={handleActivate}
                   disabled={isActivating}
+                  loading={isActivating}
+                  loadingLabel={t("activatingButton")}
                 >
-                  {isActivating
-                    ? t("activatingButton")
-                    : t("ownerScannedButton")}
+                  {t("ownerScannedButton")}
                 </Button>
               </div>
             </div>
@@ -188,8 +188,10 @@ export function ProtectWalletDrawer({
                   disabled={
                     !validAddress || !labelValid || isDuplicate || isGenerating
                   }
+                  loading={isGenerating}
+                  loadingLabel={t("generatingButton")}
                 >
-                  {isGenerating ? t("generatingButton") : t("generateButton")}
+                  {t("generateButton")}
                 </Button>
               </div>
             </div>

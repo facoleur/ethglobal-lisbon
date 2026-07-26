@@ -127,8 +127,10 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
             size="lg"
             className="w-full rounded-xl"
             disabled={isPending || !canSubmit}
+            loading={isPending}
+            loadingLabel={t("sendingButton")}
           >
-            {isPending ? t("sendingButton") : t("confirmButton")}
+            {t("confirmButton")}
           </Button>
         </form>
       </BottomSheet>

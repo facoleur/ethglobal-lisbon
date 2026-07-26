@@ -112,10 +112,10 @@ export function StepWaiting() {
             className="w-full rounded-2xl py-4"
             onClick={handleRecoveredLogin}
             disabled={isLoggingIn}
+            loading={isLoggingIn}
+            loadingLabel={t("loggingInRecoveredWallet")}
           >
-            {isLoggingIn
-              ? t("loggingInRecoveredWallet")
-              : t("loginRecoveredWallet")}
+            {t("loginRecoveredWallet")}
           </Button>
         </div>
       </div>
@@ -196,12 +196,12 @@ export function StepWaiting() {
             className="w-full rounded-2xl py-4"
             onClick={handleFinalize}
             disabled={!isFinalizerFunded || finalization.isPending}
+            loading={finalization.isPending}
+            loadingLabel={t("finalizingButton")}
           >
-            {finalization.isPending
-              ? t("finalizingButton")
-              : isFinalizerFunded
-                ? t("finalizeButton")
-                : t("waitingForFinalizerFunds")}
+            {isFinalizerFunded
+              ? t("finalizeButton")
+              : t("waitingForFinalizerFunds")}
           </Button>
         </div>
       )}

@@ -59,8 +59,10 @@ export default function LoginPage() {
             className="w-full"
             onClick={handleCreateWallet}
             disabled={isCreating || isLoggingIn}
+            loading={isCreating}
+            loadingLabel={t("creating")}
           >
-            {isCreating ? t("creating") : t("createWallet")}
+            {t("createWallet")}
           </Button>
 
           <Button
@@ -69,8 +71,10 @@ export default function LoginPage() {
             className="w-full"
             onClick={handleLogin}
             disabled={isCreating || isLoggingIn}
+            loading={isLoggingIn}
+            loadingLabel={t("loggingIn")}
           >
-            {isLoggingIn ? t("loggingIn") : t("loginWithPasskey")}
+            {t("loginWithPasskey")}
           </Button>
 
           <Button
