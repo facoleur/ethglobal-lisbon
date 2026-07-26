@@ -174,6 +174,8 @@ async function submitVeto(
     throw new Error(body.error || "Veto submission failed.");
   }
 
+  await publicClient.waitForTransactionReceipt({ hash: body.transactionHash });
+
   return body.transactionHash;
 }
 

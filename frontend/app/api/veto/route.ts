@@ -138,7 +138,6 @@ export async function POST(request: Request): Promise<Response> {
     const transactionHash = await walletClient.writeContract(
       simulation.request,
     );
-    await publicClient.waitForTransactionReceipt({ hash: transactionHash });
 
     return Response.json({ transactionHash });
   } catch (cause) {
