@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { getErrorMessage } from "@/lib/errors";
 import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import {
@@ -42,8 +43,8 @@ export function StopWatchingDrawer({
       removeAttemptsForTarget(currentWallet.address);
       toast.success(t("success"));
       onClose();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsRemoving(false);
     }
@@ -60,26 +61,15 @@ export function StopWatchingDrawer({
       <p className="text-muted-foreground text-sm">
         {t("subtitle", { wallet: currentWallet.label })}
       </p>
-      <div className="flex flex-col gap-2">
-        <Button
-          size="lg"
-          variant="destructive"
-          className="w-full"
-          onClick={handleRemove}
-          disabled={isRemoving}
-        >
-          {isRemoving ? t("removingButton") : t("confirmButton")}
-        </Button>
-        <Button
-          size="lg"
-          variant="secondary"
-          className="w-full"
-          onClick={onClose}
-          disabled={isRemoving}
-        >
-          {tCommon("cancel")}
-        </Button>
-      </div>
+      <Button
+        size="lg"
+        variant="destructive"
+        className="w-full"
+        onClick={handleRemove}
+        disabled={isRemoving}
+      >
+        {isRemoving ? t("removingButton") : t("confirmButton")}
+      </Button>
     </BottomSheet>
   );
 }

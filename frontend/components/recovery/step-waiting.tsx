@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { QrCode } from "@/components/receive/qr-code";
 import { useLoginPasskey } from "@/hooks/use-kernel";
 import { useFinalizeTarRecovery } from "@/hooks/use-tar-recovery";
+import { getErrorMessage } from "@/lib/errors";
 import {
   buildEip681Uri,
   computeProgress,
@@ -13,6 +14,7 @@ import {
   formatEth,
   SEPOLIA_CHAIN_ID,
 } from "@/lib/recovery";
+import { haptic } from "@/lib/haptics";
 import { useRecoveryStore } from "@/lib/store/recovery";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -64,19 +66,19 @@ export function StepWaiting() {
   async function handleFinalize() {
     try {
       await finalization.finalize();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     }
   }
 
   async function handleCopyFinalizerAddress() {
     if (!broadcasterAddress) return;
-
+    haptic("light");
     try {
       await navigator.clipboard.writeText(broadcasterAddress);
       toast.success(t("finalizerAddressCopied"));
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     }
   }
 
@@ -90,8 +92,8 @@ export function StepWaiting() {
       await login("TAR Recovery", targetAccount);
       clear();
       router.push("/");
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     }
   }
 

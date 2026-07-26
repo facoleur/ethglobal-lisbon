@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { QrCode } from "@/components/receive/qr-code";
 import { Button } from "@/components/ui/button";
 import { TruncatedAddress } from "@/components/ui/truncated-address";
 import { useKernelAccount } from "@/hooks/use-kernel";
+import { haptic } from "@/lib/haptics";
 
 type ReceiveDrawerProps = {
   open: boolean;
@@ -17,13 +18,16 @@ export function ReceiveDrawer({ open, onOpenChange }: ReceiveDrawerProps) {
   const t = useTranslations("App.ReceiveDrawer");
   const tCommon = useTranslations("Common");
   const { address } = useKernelAccount();
-  const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    if (!address || copied) return;
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    if (!address) return;
+    haptic("light");
+    try {
+      await navigator.clipboard.writeText(address);
+      toast.success(t("copied"));
+    } catch {
+      toast.error(tCommon("error"));
+    }
   };
 
   return (
@@ -40,7 +44,7 @@ export function ReceiveDrawer({ open, onOpenChange }: ReceiveDrawerProps) {
           />
 
           <Button size="lg" className="w-full rounded-2xl" onClick={handleCopy}>
-            {copied ? t("copiedButton") : t("copyButton")}
+            {t("copyButton")}
           </Button>
         </div>
       ) : (

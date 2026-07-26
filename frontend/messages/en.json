@@ -38,15 +38,10 @@
       "copyBroadcasterAddress": "Copy funding address",
       "broadcasterAddressCopied": "Funding address copied!",
       "waitingForFunds": "Waiting for funds…",
-      "fundsReceived": "Funds received. Ready to create the recovery passkey.",
-      "createRecoveryPasskey": "Create recovery passkey",
+      "fundsReceived": "Funds received. Tap the button below to start recovery.",
       "creatingRecoveryPasskey": "Creating recovery passkey…",
-      "passkeyReady": "Recovery passkey and commitment are ready.",
       "startRecoveryButton": "Start recovery",
       "submittingRecovery": "Submitting recovery…",
-      "stakeButton": "Stake & start recovery",
-      "stakingButton": "Starting recovery…",
-      "cancelButton": "Cancel",
       "step3Title": "Recovery in progress",
       "step3Subtitle": "Waiting for the lock time to expire.",
       "timeRemaining": "Time remaining",
@@ -199,8 +194,7 @@
       "RemoveAccountDrawer": {
         "title": "Remove Account",
         "warning": "This will remove your wallet from this device. Make sure you have your recovery method before continuing.",
-        "confirmButton": "Remove Account",
-        "cancelButton": "Cancel"
+        "confirmButton": "Remove Account"
       }
     },
     "SendDrawer": {
@@ -230,6 +224,7 @@
   },
   "Common": {
     "error": "Something went wrong.",
+    "revokedPasskeyError": "Your passkey is no longer authorized. Your wallet was recovered by a guardian.",
     "cancel": "Cancel",
     "tryAgain": "Try again",
     "notFound": "Page not found",

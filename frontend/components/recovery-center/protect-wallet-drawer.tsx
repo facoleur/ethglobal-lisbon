@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/ui/qr-scanner";
+import { getErrorMessage } from "@/lib/errors";
 import { truncateAddress } from "@/lib/recovery";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import {
@@ -29,7 +30,6 @@ export function ProtectWalletDrawer({
   onOpenChange,
 }: ProtectWalletDrawerProps) {
   const t = useTranslations("App.Recovery.ProtectWalletDrawer");
-  const tCommon = useTranslations("Common");
   const { watchedWallets, addWatchedWallet } = useWatchTowerStore();
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState("");
@@ -68,8 +68,8 @@ export function ProtectWalletDrawer({
         address: getAddress(address),
       });
       setPendingWallet(wallet);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsGenerating(false);
     }
@@ -83,8 +83,8 @@ export function ProtectWalletDrawer({
       addWatchedWallet(pendingWallet);
       toast.success(t("activateSuccess"));
       handleOpenChange(false);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsActivating(false);
     }

@@ -3,6 +3,7 @@
 import { RecoveryDrawer } from "@/components/recovery/recovery-drawer";
 import { Button } from "@/components/ui/button";
 import { useLoginPasskey, useRegisterPasskey } from "@/hooks/use-kernel";
+import { getErrorMessage } from "@/lib/errors";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -11,7 +12,6 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const t = useTranslations("Auth.Login");
-  const tCommon = useTranslations("Common");
   const router = useRouter();
   const { register, isPending: isCreating } = useRegisterPasskey();
   const { login, isPending: isLoggingIn } = useLoginPasskey();
@@ -21,8 +21,8 @@ export default function LoginPage() {
     try {
       await register("TAR Wallet");
       router.push("/");
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     }
   }
 
@@ -30,8 +30,8 @@ export default function LoginPage() {
     try {
       await login("TAR Wallet");
       router.push("/");
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     }
   }
 

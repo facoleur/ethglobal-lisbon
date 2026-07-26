@@ -6,6 +6,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { useUpdateRecoveryParams } from "@/hooks/use-tar-recovery";
 import type { LockTimeUnit } from "@/lib/contracts/tar-recovery";
+import { getTransactionErrorMessage } from "@/lib/errors";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -42,8 +43,10 @@ export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
       toast.success(t("saveSuccess"));
       onOpenChange(false);
       onSuccess?.();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (cause) {
+      toast.error(
+        getTransactionErrorMessage(cause, tCommon("revokedPasskeyError")),
+      );
     }
   };
 

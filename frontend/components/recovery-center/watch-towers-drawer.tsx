@@ -8,6 +8,7 @@ import { AddressInput } from "@/components/ui/address-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
+import { getErrorMessage } from "@/lib/errors";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/ui/qr-scanner";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
@@ -76,8 +77,8 @@ export function WatchTowersDrawer({
       addWatchTower(watchTower);
       toast.success(t("addSuccess"));
       resetAddFlow();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsAdding(false);
     }
@@ -91,8 +92,8 @@ export function WatchTowersDrawer({
       removeWatchTower(towerToRemove.id);
       toast.success(t("removeSuccess"));
       setTowerToRemove(null);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setIsRemoving(false);
     }
@@ -254,26 +255,15 @@ export function WatchTowersDrawer({
         <p className="text-muted-foreground text-sm">
           {t("removeSubtitle", { label: towerToRemove?.label ?? "" })}
         </p>
-        <div className="flex flex-col gap-2">
-          <Button
-            size="lg"
-            variant="destructive"
-            className="w-full"
-            onClick={handleRemove}
-            disabled={isRemoving}
-          >
-            {isRemoving ? t("removingButton") : t("confirmRemoveButton")}
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="w-full"
-            onClick={() => setTowerToRemove(null)}
-            disabled={isRemoving}
-          >
-            {tCommon("cancel")}
-          </Button>
-        </div>
+        <Button
+          size="lg"
+          variant="destructive"
+          className="w-full"
+          onClick={handleRemove}
+          disabled={isRemoving}
+        >
+          {isRemoving ? t("removingButton") : t("confirmRemoveButton")}
+        </Button>
       </BottomSheet>
     </>
   );

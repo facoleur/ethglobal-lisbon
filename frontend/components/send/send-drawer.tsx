@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { QrScanner } from "@/components/ui/qr-scanner";
 import { useSendKernelTransaction } from "@/hooks/use-kernel";
-import { getErrorMessage } from "@/lib/errors";
+import { getTransactionErrorMessage } from "@/lib/errors";
 import { haptic } from "@/lib/haptics";
 import { parseEthereumQr } from "@/lib/qr";
 
@@ -21,6 +21,7 @@ type SendDrawerProps = {
 
 export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
   const t = useTranslations("App.SendDrawer");
+  const tCommon = useTranslations("Common");
   const formRef = useRef<HTMLFormElement>(null);
   const { sendTransaction, isPending } = useSendKernelTransaction();
   const [recipient, setRecipient] = useState("");
@@ -75,7 +76,14 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
       setRecipient("");
       onOpenChange(false);
     } catch (cause) {
-      toast.error(t("sendFailed", { message: getErrorMessage(cause) }));
+      toast.error(
+        t("sendFailed", {
+          message: getTransactionErrorMessage(
+            cause,
+            tCommon("revokedPasskeyError"),
+          ),
+        }),
+      );
     }
   };
 

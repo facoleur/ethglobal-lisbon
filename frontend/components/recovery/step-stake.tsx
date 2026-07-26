@@ -12,6 +12,8 @@ import {
   computeRecoveryCommitment,
   generateRecoverySalt,
 } from "@/lib/recovery/commitment";
+import { getErrorMessage } from "@/lib/errors";
+import { haptic } from "@/lib/haptics";
 import { useRecoveryStore } from "@/lib/store/recovery";
 import {
   BROADCASTER_GAS_BUFFER,
@@ -24,7 +26,6 @@ import {
 
 export function StepStake() {
   const t = useTranslations("Auth.Recovery");
-  const tCommon = useTranslations("Common");
   const {
     status,
     targetAccount,
@@ -33,7 +34,6 @@ export function StepStake() {
     broadcasterAddress,
     requiredFunding,
     setRecoverySigner,
-    clear,
   } = useRecoveryStore();
   const [isCreatingPasskey, setIsCreatingPasskey] = useState(false);
   const recoverySubmission = useSubmitTarRecovery();
@@ -48,11 +48,6 @@ export function StepStake() {
   const isFunded =
     broadcasterBalance.data !== undefined &&
     broadcasterBalance.data.value >= fundingAmount;
-  const isReadyToCommit = status === "ready_to_commit";
-  const isSubmittingRecovery =
-    status === "requesting" ||
-    status === "waiting_reveal" ||
-    status === "revealing";
 
   const eip681Uri = buildEip681Uri(
     broadcasterAddress ?? "0x0000000000000000000000000000000000000000",
@@ -60,7 +55,18 @@ export function StepStake() {
     fundingAmount,
   );
 
-  async function handleCreatePasskey() {
+  async function handleCopyBroadcasterAddress() {
+    if (!broadcasterAddress) return;
+    haptic("light");
+    try {
+      await navigator.clipboard.writeText(broadcasterAddress);
+      toast.success(t("broadcasterAddressCopied"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    }
+  }
+
+  async function handleCreatePasskeyAndStart() {
     if (!targetAccount || !broadcasterAddress || !isFunded) return;
 
     setIsCreatingPasskey(true);
@@ -85,31 +91,22 @@ export function StepStake() {
         salt,
         commitment,
       });
-    } catch {
-      toast.error(tCommon("error"));
-    } finally {
+    } catch (e) {
+      toast.error(getErrorMessage(e));
       setIsCreatingPasskey(false);
+      return;
     }
-  }
 
-  async function handleCopyBroadcasterAddress() {
-    if (!broadcasterAddress) return;
-
-    try {
-      await navigator.clipboard.writeText(broadcasterAddress);
-      toast.success(t("broadcasterAddressCopied"));
-    } catch {
-      toast.error(tCommon("error"));
-    }
-  }
-
-  async function handleStartRecovery() {
     try {
       await recoverySubmission.submit();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     }
+
+    setIsCreatingPasskey(false);
   }
+
+  const isWorking = isCreatingPasskey || recoverySubmission.isPending;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -192,50 +189,35 @@ export function StepStake() {
               : "text-muted-foreground text-center text-sm"
           }
         >
-          {isSubmittingRecovery
+          {recoverySubmission.isPending
             ? t("submittingRecovery")
-            : isReadyToCommit
-              ? t("passkeyReady")
+            : isCreatingPasskey
+              ? t("creatingRecoveryPasskey")
               : isFunded
                 ? t("fundsReceived")
                 : t("waitingForFunds")}
         </p>
       </div>
 
-      <div className="mt-auto flex flex-col gap-3 pt-8">
-        {isFunded && status === "awaiting_funding" && (
+      <div className="mt-auto pt-8">
+        {(isFunded && status === "awaiting_funding") || isWorking ? (
           <Button
             size="lg"
             className="w-full rounded-2xl py-4"
-            onClick={handleCreatePasskey}
-            disabled={isCreatingPasskey}
-          >
-            {isCreatingPasskey
-              ? t("creatingRecoveryPasskey")
-              : t("createRecoveryPasskey")}
-          </Button>
-        )}
-        {((isFunded && isReadyToCommit) || isSubmittingRecovery) && (
-          <Button
-            size="lg"
-            className="w-full rounded-2xl py-4"
-            onClick={handleStartRecovery}
-            disabled={recoverySubmission.isPending}
+            onClick={handleCreatePasskeyAndStart}
+            disabled={isWorking}
           >
             {recoverySubmission.isPending
               ? t("submittingRecovery")
-              : t("startRecoveryButton")}
+              : isCreatingPasskey
+                ? t("creatingRecoveryPasskey")
+                : t("startRecoveryButton")}
+          </Button>
+        ) : (
+          <Button size="lg" className="w-full rounded-2xl py-4" disabled>
+            {t("waitingForFunds")}
           </Button>
         )}
-        <Button
-          size="lg"
-          variant="ghost"
-          className="w-full rounded-2xl py-4"
-          onClick={clear}
-          disabled={isCreatingPasskey || recoverySubmission.isPending}
-        >
-          {t("cancelButton")}
-        </Button>
       </div>
     </div>
   );

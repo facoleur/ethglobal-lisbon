@@ -22,6 +22,7 @@ import { SettingsMenuItem } from "@/components/settings/settings-menu-item";
 import { TarDrawer } from "@/components/settings/tar-drawer";
 import { Button } from "@/components/ui/button";
 import { useKernelAccount } from "@/hooks/use-kernel";
+import { getErrorMessage } from "@/lib/errors";
 import {
   groupRecoveryAttempts,
   simulateRecoveryAttempt,
@@ -81,8 +82,8 @@ export function RecoveryCenter() {
         targetLabel: t("myWallet"),
       });
       addAttempt(attempt);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setSimulatingRole(null);
     }
@@ -99,8 +100,8 @@ export function RecoveryCenter() {
         targetLabel: wallet.label,
       });
       addAttempt(attempt);
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setSimulatingRole(null);
     }

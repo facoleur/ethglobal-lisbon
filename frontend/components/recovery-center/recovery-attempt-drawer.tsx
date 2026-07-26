@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { getErrorMessage } from "@/lib/errors";
 import { haptic } from "@/lib/haptics";
 import { formatCountdown, truncateAddress } from "@/lib/recovery";
 import {
@@ -27,7 +28,6 @@ export function RecoveryAttemptDrawer({
   onResolved,
 }: RecoveryAttemptDrawerProps) {
   const t = useTranslations("App.Recovery.AttemptDrawer");
-  const tCommon = useTranslations("Common");
   const [now, setNow] = useState(() => Date.now());
   const [pendingAction, setPendingAction] = useState<
     "veto" | "acknowledge" | null
@@ -57,8 +57,8 @@ export function RecoveryAttemptDrawer({
       onResolved(currentAttempt.id);
       toast.success(action === "veto" ? t("vetoSuccess") : t("allowSuccess"));
       onClose();
-    } catch {
-      toast.error(tCommon("error"));
+    } catch (e) {
+      toast.error(getErrorMessage(e));
     } finally {
       setPendingAction(null);
     }
