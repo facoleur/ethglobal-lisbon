@@ -7,7 +7,6 @@ import {
   chain,
   getBrowserPasskeyRpId,
   publicClient,
-  semaphoreAddress,
   tarRecoveryExecutorV2Address,
   tarRecoveryExecutorV2DeploymentBlock,
 } from "@/lib/kernel/config";
@@ -34,7 +33,7 @@ export async function getDefensePolicy(
     throw new Error("TAR Recovery V2 deployment block is not configured.");
   }
 
-  const [epoch, groupId] = await Promise.all([
+  const [epoch, groupId, semaphoreAddress] = await Promise.all([
     publicClient.readContract({
       abi: tarRecoveryExecutorV2Abi,
       address: tarRecoveryExecutorV2Address,
@@ -46,6 +45,11 @@ export async function getDefensePolicy(
       address: tarRecoveryExecutorV2Address,
       functionName: "groupOf",
       args: [protectedWallet],
+    }),
+    publicClient.readContract({
+      abi: tarRecoveryExecutorV2Abi,
+      address: tarRecoveryExecutorV2Address,
+      functionName: "semaphore",
     }),
   ]);
   if (groupId === BigInt(0)) {

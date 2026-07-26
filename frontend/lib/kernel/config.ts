@@ -35,10 +35,6 @@ export const tarRecoveryExecutorAddress: Address | null =
     ? getAddress(configuredTarRecoveryExecutorAddress)
     : null);
 
-export const semaphoreAddress = getAddress(
-  "0x1e0d7FF1610e480fC93BdEC510811ea2Ba6d7c2f",
-);
-
 const configuredTarRecoveryExecutorV2DeploymentBlock =
   process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_V2_DEPLOYMENT_BLOCK?.trim();
 
