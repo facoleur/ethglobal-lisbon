@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import { isAddress, parseEther } from "viem";
+import { isAddress } from "viem";
 import { toast } from "sonner";
 import { AddressInput } from "@/components/ui/address-input";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { QrScanner } from "@/components/ui/qr-scanner";
 import { useSendKernelTransaction } from "@/hooks/use-kernel";
+import { parsePositiveEtherAmount } from "@/lib/amount";
 import { getTransactionErrorMessage } from "@/lib/errors";
 import { haptic } from "@/lib/haptics";
 import { parseEthereumQr } from "@/lib/qr";
@@ -17,24 +18,28 @@ import { parseEthereumQr } from "@/lib/qr";
 type SendDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  balance?: bigint;
 };
 
-export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
+export function SendDrawer({ open, onOpenChange, balance }: SendDrawerProps) {
   const t = useTranslations("App.SendDrawer");
   const tCommon = useTranslations("Common");
   const formRef = useRef<HTMLFormElement>(null);
   const { sendTransaction, isPending } = useSendKernelTransaction();
   const [recipient, setRecipient] = useState("");
-  const [amountFilled, setAmountFilled] = useState(false);
+  const [amount, setAmount] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
-  const canSubmit = recipient.trim() !== "" && amountFilled;
+  const amountValue = parsePositiveEtherAmount(amount);
+  const hasSufficientBalance =
+    balance !== undefined && amountValue !== null && amountValue <= balance;
+  const canSubmit = recipient.trim() !== "" && hasSufficientBalance;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isPending) return;
     if (!nextOpen) {
       formRef.current?.reset();
       setRecipient("");
-      setAmountFilled(false);
+      setAmount("");
     }
     onOpenChange(nextOpen);
   };
@@ -56,16 +61,13 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
       return;
     }
 
-    let value: bigint;
-    try {
-      value = parseEther(amount);
-    } catch {
+    const value = parsePositiveEtherAmount(amount);
+    if (value === null) {
       toast.error(t("invalidAmount"));
       return;
     }
-
-    if (value <= BigInt(0)) {
-      toast.error(t("invalidAmount"));
+    if (balance === undefined || value > balance) {
+      toast.error(t("insufficientBalance"));
       return;
     }
 
@@ -74,6 +76,7 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
       toast.success(t("success"));
       formRef.current?.reset();
       setRecipient("");
+      setAmount("");
       onOpenChange(false);
     } catch (cause) {
       toast.error(
@@ -118,9 +121,10 @@ export function SendDrawer({ open, onOpenChange }: SendDrawerProps) {
             inputMode="decimal"
             aria-label={t("amountLabel")}
             placeholder={t("amountPlaceholder")}
+            value={amount}
             disabled={isPending}
             required
-            onChange={(e) => setAmountFilled(e.target.value.trim() !== "")}
+            onChange={(e) => setAmount(e.target.value)}
           />
           <Button
             type="submit"
