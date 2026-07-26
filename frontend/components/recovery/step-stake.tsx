@@ -189,11 +189,13 @@ export function StepStake() {
         </div>
 
         {!hasPassedFunding ? (
-          <div className="relative flex flex-1 items-center justify-center">
-            <p className="text-muted-foreground absolute top-0 text-center text-sm">
-              {t("qrCaption")}
-            </p>
-            <QrCode value={eip681Uri} />
+          <div className="flex flex-1 items-center justify-center">
+            <div className="relative">
+              <p className="text-muted-foreground absolute bottom-full left-1/2 mb-2 -translate-x-1/2 text-center text-sm whitespace-nowrap">
+                {t("qrCaption")}
+              </p>
+              <QrCode value={eip681Uri} />
+            </div>
           </div>
         ) : (
           !isWorking && (
