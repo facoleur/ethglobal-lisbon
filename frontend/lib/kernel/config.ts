@@ -26,11 +26,28 @@ export const webAuthnValidatorAddress = getAddress(
 
 const configuredTarRecoveryExecutorAddress =
   process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_ADDRESS?.trim();
+const configuredTarRecoveryExecutorV2Address =
+  process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_V2_ADDRESS?.trim();
 
-export const tarRecoveryExecutorAddress: Address | null =
-  configuredTarRecoveryExecutorAddress
-    ? getAddress(configuredTarRecoveryExecutorAddress)
+export const tarRecoveryExecutorV2Address: Address | null =
+  configuredTarRecoveryExecutorV2Address
+    ? getAddress(configuredTarRecoveryExecutorV2Address)
     : null;
+
+// V2 preserves the V1 recovery interface, so it becomes the active executor when configured.
+export const tarRecoveryExecutorAddress: Address | null =
+  tarRecoveryExecutorV2Address ??
+  (configuredTarRecoveryExecutorAddress
+    ? getAddress(configuredTarRecoveryExecutorAddress)
+    : null);
+
+const configuredTarRecoveryExecutorV2DeploymentBlock =
+  process.env.NEXT_PUBLIC_TAR_RECOVERY_EXECUTOR_V2_DEPLOYMENT_BLOCK?.trim();
+
+export const tarRecoveryExecutorV2DeploymentBlock =
+  configuredTarRecoveryExecutorV2DeploymentBlock
+    ? BigInt(configuredTarRecoveryExecutorV2DeploymentBlock)
+    : BigInt(0);
 
 export const sepoliaRpcUrl =
   process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL?.trim() ||
@@ -64,12 +81,20 @@ export const publicClient = createPublicClient({
   transport: http(sepoliaRpcUrl),
 });
 
-// WebSocket client – used for real-time subscriptions (watchBlockNumber).
-// Falls back to the HTTP client when no WS endpoint is available so callers
-// can always import `watchClient` without feature-detecting.
+// WebSocket client used for real-time subscriptions when available.
 export const watchClient = sepoliaWsUrl
   ? createPublicClient({ chain, transport: webSocket(sepoliaWsUrl) })
   : publicClient;
+
+export function getBrowserPasskeyRpId(): string {
+  if (typeof window === "undefined") {
+    throw new Error("Passkey authentication is only available in the browser.");
+  }
+
+  return (
+    process.env.NEXT_PUBLIC_PASSKEY_RP_ID?.trim() || window.location.hostname
+  );
+}
 
 export function getBrowserWalletConfig() {
   if (typeof window === "undefined") {
@@ -98,7 +123,6 @@ export function getBrowserWalletConfig() {
     pimlicoUrl:
       configuredPimlicoUrl ||
       `https://api.pimlico.io/v2/${chain.id}/rpc?apikey=${pimlicoApiKey}`,
-    rpId:
-      process.env.NEXT_PUBLIC_PASSKEY_RP_ID?.trim() || window.location.hostname,
+    rpId: getBrowserPasskeyRpId(),
   };
 }

@@ -22,6 +22,7 @@ import { SettingsMenuItem } from "@/components/settings/settings-menu-item";
 import { TarDrawer } from "@/components/settings/tar-drawer";
 import { Button } from "@/components/ui/button";
 import { useKernelAccount } from "@/hooks/use-kernel";
+import { useRecoveryAttemptSync } from "@/hooks/use-recovery-attempt-sync";
 import { getErrorMessage } from "@/lib/errors";
 import {
   groupRecoveryAttempts,
@@ -29,6 +30,7 @@ import {
   type RecoveryAttempt,
 } from "@/lib/recovery-center";
 import { MOCK_LOCK_TIME_LABEL, MOCK_LOCK_VALUE_ETH } from "@/lib/recovery";
+import { tarRecoveryExecutorV2Address } from "@/lib/kernel/config";
 import { useRecoveryCenterStore } from "@/lib/store/recovery-center";
 import { useWatchTowerStore } from "@/lib/store/watch-towers";
 import { MAX_WATCH_TOWERS, type WatchedWallet } from "@/lib/watch-towers";
@@ -62,6 +64,8 @@ export function RecoveryCenter() {
   const [simulatingRole, setSimulatingRole] = useState<
     "owner" | "watchTower" | null
   >(null);
+
+  useRecoveryAttemptSync(t("myWallet"));
 
   useEffect(() => {
     if (attemptsHydrated) purgeExpiredWatchTowerAttempts(Date.now());
@@ -240,38 +244,41 @@ export function RecoveryCenter() {
           </Button>
         </section>
 
-        {process.env.NODE_ENV === "development" && (
-          <section className="flex flex-col gap-2 rounded-2xl bg-black/[0.03] p-4">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="size-4" />
-              <h2 className="text-sm font-semibold">{t("devTools")}</h2>
-            </div>
-            <Button
-              type="button"
-              size="xs"
-              variant="link"
-              className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline"
-              onClick={handleSimulateOwnerAttempt}
-              disabled={simulatingRole !== null || !accountAddress}
-              loading={simulatingRole === "owner"}
-              loadingLabel={t("simulating")}
-            >
-              {t("simulateOwnerAttempt")}
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="link"
-              className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline disabled:opacity-40"
-              onClick={handleSimulateWatchTowerAttempt}
-              disabled={simulatingRole !== null || watchedWallets.length === 0}
-              loading={simulatingRole === "watchTower"}
-              loadingLabel={t("simulating")}
-            >
-              {t("simulateWatchedAttempt")}
-            </Button>
-          </section>
-        )}
+        {process.env.NODE_ENV === "development" &&
+          !tarRecoveryExecutorV2Address && (
+            <section className="flex flex-col gap-2 rounded-2xl bg-black/[0.03] p-4">
+              <div className="flex items-center gap-2">
+                <FlaskConical className="size-4" />
+                <h2 className="text-sm font-semibold">{t("devTools")}</h2>
+              </div>
+              <Button
+                type="button"
+                size="xs"
+                variant="link"
+                className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline"
+                onClick={handleSimulateOwnerAttempt}
+                disabled={simulatingRole !== null || !accountAddress}
+                loading={simulatingRole === "owner"}
+                loadingLabel={t("simulating")}
+              >
+                {t("simulateOwnerAttempt")}
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="link"
+                className="text-muted-foreground h-auto justify-start p-0 text-left text-xs underline disabled:opacity-40"
+                onClick={handleSimulateWatchTowerAttempt}
+                disabled={
+                  simulatingRole !== null || watchedWallets.length === 0
+                }
+                loading={simulatingRole === "watchTower"}
+                loadingLabel={t("simulating")}
+              >
+                {t("simulateWatchedAttempt")}
+              </Button>
+            </section>
+          )}
 
         <section className="overflow-hidden rounded-2xl bg-card">
           <SettingsMenuItem

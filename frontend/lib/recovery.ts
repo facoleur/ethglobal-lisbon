@@ -1,7 +1,7 @@
 import { formatEther, parseEther } from "viem";
 
 export const SEPOLIA_CHAIN_ID = 11155111;
-export const BROADCASTER_GAS_BUFFER = parseEther("0.01");
+export const BROADCASTER_GAS_BUFFER = parseEther("0.001");
 export const FINALIZER_GAS_BUFFER = parseEther("0.001");
 
 const MOCK_CHALLENGE_WINDOW_MS = 30_000;

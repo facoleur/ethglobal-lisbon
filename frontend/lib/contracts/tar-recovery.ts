@@ -24,6 +24,31 @@ export const tarRecoveryExecutorAbi = parseAbi([
   "event RecoveryParamsUpdated(address indexed account, uint256 lockValue, uint256 lockTime)",
 ]);
 
+export const tarRecoveryExecutorV2Abi = parseAbi([
+  "error RecoveryNotRevealed(address account)",
+  "error WatchTowerGroupNotConfigured()",
+  "error ScopeMismatch()",
+  "error InvalidWatchTowerProof()",
+  "error TransferFailed()",
+  "function regenerateWatchTowerGroup(uint256[] members)",
+  "function challengeRecovery(address addressToRecover, (uint256 merkleTreeDepth, uint256 merkleTreeRoot, uint256 nullifier, uint256 message, uint256 scope, uint256[8] points) proof)",
+  "function isInitialized(address smartAccount) view returns (bool)",
+  "function configs(address account) view returns (uint256 lockValue, uint256 lockTime)",
+  "function recoveries(address account) view returns (address broadcasterAddress, uint256 newPubKeyX, uint256 newPubKeyY, uint256 stakedValue, uint256 revealTimestamp, uint8 status)",
+  "function epochOf(address account) view returns (uint256)",
+  "function groupOf(address account) view returns (uint256)",
+  "function semaphore() view returns (address)",
+  "event WatchTowerGroupRegenerated(address indexed account, uint256 indexed groupId, uint256 memberCount, uint256 epoch)",
+]);
+
+export const semaphoreGroupsAbi = parseAbi([
+  "function getMerkleTreeRoot(uint256 groupId) view returns (uint256)",
+  "function getMerkleTreeDepth(uint256 groupId) view returns (uint256)",
+  "function getMerkleTreeSize(uint256 groupId) view returns (uint256)",
+  "function hasMember(uint256 groupId, uint256 identityCommitment) view returns (bool)",
+  "event MembersAdded(uint256 indexed groupId, uint256 startIndex, uint256[] identityCommitments, uint256 merkleTreeRoot)",
+]);
+
 export const tarWebAuthnValidatorAbi = parseAbi([
   "function keyData(address account) view returns (uint256 pubKeyX, uint256 pubKeyY, bytes32 credentialIdHash, uint64 keyVersion)",
   "function isInitialized(address smartAccount) view returns (bool)",

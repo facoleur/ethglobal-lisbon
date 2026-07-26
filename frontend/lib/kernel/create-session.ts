@@ -20,6 +20,7 @@ import {
   publicClient,
   webAuthnValidatorAddress,
 } from "@/lib/kernel/config";
+import { registerPrfPasskey } from "@/lib/kernel/register-prf-passkey";
 
 export type PasskeyMode = "register" | "login";
 
@@ -45,13 +46,16 @@ export async function createPasskeyCredential(
   passkeyName: string,
 ) {
   const { passkeyServerUrl, rpId } = getBrowserWalletConfig();
-  const webAuthnKey = await toWebAuthnKey({
-    passkeyName,
-    passkeyServerUrl,
-    rpID: rpId,
-    mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login,
-    passkeyServerHeaders: {},
-  });
+  const webAuthnKey =
+    mode === "register"
+      ? await registerPrfPasskey(passkeyName, passkeyServerUrl, rpId)
+      : await toWebAuthnKey({
+          passkeyName,
+          passkeyServerUrl,
+          rpID: rpId,
+          mode: WebAuthnMode.Login,
+          passkeyServerHeaders: {},
+        });
   const pubKeyX = toHex(webAuthnKey.pubX, { size: 32 });
   const pubKeyY = toHex(webAuthnKey.pubY, { size: 32 });
   const publicKey = concatHex([pubKeyX, pubKeyY]);

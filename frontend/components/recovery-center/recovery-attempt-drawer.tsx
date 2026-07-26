@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { getErrorMessage } from "@/lib/errors";
 import { haptic } from "@/lib/haptics";
+import { tarRecoveryExecutorV2Address } from "@/lib/kernel/config";
 import { formatCountdown, truncateAddress } from "@/lib/recovery";
 import {
   getAttemptProgressRemaining,
@@ -15,6 +16,18 @@ import {
   simulateResolveRecoveryAttempt,
   type RecoveryAttempt,
 } from "@/lib/recovery-center";
+import { useWatchTowerStore } from "@/lib/store/watch-towers";
+import { useWalletStore } from "@/lib/store/wallet";
+import {
+  vetoAsOwner,
+  vetoAsWatchTower,
+  VetoContractError,
+  VetoRelayerUnavailableError,
+} from "@/lib/watch-tower-policy";
+import {
+  WatchTowerIdentityNotInGroupError,
+  WatchTowerProofGenerationError,
+} from "@/lib/watch-tower-proof";
 
 type RecoveryAttemptDrawerProps = {
   attempt: RecoveryAttempt | null;
@@ -28,10 +41,16 @@ export function RecoveryAttemptDrawer({
   onResolved,
 }: RecoveryAttemptDrawerProps) {
   const t = useTranslations("App.Recovery.AttemptDrawer");
+  const credentialId = useWalletStore((state) => state.credentialId);
+  const watchedWallets = useWatchTowerStore((state) => state.watchedWallets);
+  const setWatchedWalletEpoch = useWatchTowerStore(
+    (state) => state.setWatchedWalletEpoch,
+  );
   const [now, setNow] = useState(() => Date.now());
   const [pendingAction, setPendingAction] = useState<
     "veto" | "acknowledge" | null
   >(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!attempt) return;
@@ -52,13 +71,43 @@ export function RecoveryAttemptDrawer({
   async function resolve(action: "veto" | "acknowledge") {
     haptic(action === "veto" ? "heavy" : "medium");
     setPendingAction(action);
+    setActionError(null);
     try {
-      await simulateResolveRecoveryAttempt();
+      if (action === "veto" && tarRecoveryExecutorV2Address) {
+        if (currentAttempt.role === "owner") {
+          if (!credentialId) throw new Error("Passkey credential not found.");
+          await vetoAsOwner(currentAttempt.targetAddress, credentialId);
+        } else {
+          const wallet = watchedWallets.find(
+            (candidate) =>
+              candidate.address.toLowerCase() ===
+              currentAttempt.targetAddress.toLowerCase(),
+          );
+          if (!wallet) throw new Error("Watched wallet identity not found.");
+          const result = await vetoAsWatchTower(wallet);
+          setWatchedWalletEpoch(wallet.id, Number(result.policy.epoch));
+        }
+      } else {
+        await simulateResolveRecoveryAttempt();
+      }
       onResolved(currentAttempt.id);
       toast.success(action === "veto" ? t("vetoSuccess") : t("allowSuccess"));
       onClose();
-    } catch (e) {
-      toast.error(getErrorMessage(e));
+    } catch (error) {
+      let message = getErrorMessage(error);
+      if (error instanceof VetoRelayerUnavailableError) {
+        message = t("relayerUnavailable");
+      } else if (error instanceof WatchTowerIdentityNotInGroupError) {
+        message = t("identityNotInGroup");
+      } else if (error instanceof WatchTowerProofGenerationError) {
+        message = t("proofGenerationFailed");
+      } else if (error instanceof VetoContractError) {
+        message = t("contractRejected", {
+          reason: error.code ?? error.message,
+        });
+      }
+      setActionError(message);
+      toast.error(message);
     } finally {
       setPendingAction(null);
     }
@@ -139,6 +188,9 @@ export function RecoveryAttemptDrawer({
           >
             {t("allowButton")}
           </Button>
+        )}
+        {actionError && (
+          <p className="text-destructive text-center text-sm">{actionError}</p>
         )}
       </div>
     </BottomSheet>
