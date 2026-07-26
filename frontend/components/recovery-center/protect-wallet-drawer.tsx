@@ -50,6 +50,7 @@ export function ProtectWalletDrawer({
   const [pendingEnrollment, setPendingEnrollment] =
     useState<PendingEnrollment | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const validAddress = isAddress(address);
   const labelValid = label.trim().length > 0;
@@ -62,6 +63,7 @@ export function ProtectWalletDrawer({
     setAddress("");
     setPendingEnrollment(null);
     setScannerOpen(false);
+    setGenerationError(null);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -73,6 +75,7 @@ export function ProtectWalletDrawer({
   async function handleGenerate() {
     if (!validAddress || !labelValid || isDuplicate || !credentialId) return;
     setIsGenerating(true);
+    setGenerationError(null);
     try {
       const protectedWallet = getAddress(address);
       const relationshipId = createWatchTowerRelationshipId();
@@ -100,11 +103,12 @@ export function ProtectWalletDrawer({
       });
       setPendingEnrollment({ frames, wallet });
     } catch (error) {
-      toast.error(
+      const message =
         error instanceof PasskeyPrfUnavailableError
           ? t("prfUnavailable")
-          : tCommon("error"),
-      );
+          : tCommon("error");
+      setGenerationError(message);
+      toast.error(message);
     } finally {
       setIsGenerating(false);
     }
@@ -229,6 +233,11 @@ export function ProtectWalletDrawer({
                 >
                   {isGenerating ? t("generatingButton") : t("generateButton")}
                 </Button>
+                {generationError && (
+                  <p className="text-destructive mt-3 text-center text-sm">
+                    {generationError}
+                  </p>
+                )}
               </div>
             </div>
           )}

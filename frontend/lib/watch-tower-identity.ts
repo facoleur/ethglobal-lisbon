@@ -117,7 +117,15 @@ export async function requestPasskeyPrf(
     extensions,
   };
 
-  const credential = await navigator.credentials.get({ publicKey });
+  let credential: Credential | null;
+  try {
+    credential = await navigator.credentials.get({ publicKey });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "NotSupportedError") {
+      throw new PasskeyPrfUnavailableError();
+    }
+    throw error;
+  }
   if (!(credential instanceof PublicKeyCredential)) {
     throw new PasskeyPrfUnavailableError();
   }
