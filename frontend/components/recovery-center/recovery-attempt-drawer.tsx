@@ -47,9 +47,7 @@ export function RecoveryAttemptDrawer({
     (state) => state.setWatchedWalletEpoch,
   );
   const [now, setNow] = useState(() => Date.now());
-  const [pendingAction, setPendingAction] = useState<
-    "veto" | "acknowledge" | null
-  >(null);
+  const [isVetoing, setIsVetoing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,14 +64,14 @@ export function RecoveryAttemptDrawer({
   const timeLeft = getAttemptTimeLeft(currentAttempt, now);
   const progress = getAttemptProgressRemaining(currentAttempt, now);
   const isExpired = timeLeft === 0;
-  const isPending = pendingAction !== null;
+  const isPending = isVetoing;
 
-  async function resolve(action: "veto" | "acknowledge") {
-    haptic(action === "veto" ? "heavy" : "medium");
-    setPendingAction(action);
+  async function veto() {
+    haptic("heavy");
+    setIsVetoing(true);
     setActionError(null);
     try {
-      if (action === "veto" && tarRecoveryExecutorV2Address) {
+      if (tarRecoveryExecutorV2Address) {
         if (currentAttempt.role === "owner") {
           if (!credentialId) throw new Error("Passkey credential not found.");
           await vetoAsOwner(currentAttempt.targetAddress, credentialId);
@@ -91,7 +89,7 @@ export function RecoveryAttemptDrawer({
         await simulateResolveRecoveryAttempt();
       }
       onResolved(currentAttempt.id);
-      toast.success(action === "veto" ? t("vetoSuccess") : t("allowSuccess"));
+      toast.success(t("vetoSuccess"));
       onClose();
     } catch (error) {
       let message = getErrorMessage(error);
@@ -109,7 +107,7 @@ export function RecoveryAttemptDrawer({
       setActionError(message);
       toast.error(message);
     } finally {
-      setPendingAction(null);
+      setIsVetoing(false);
     }
   }
 
@@ -169,26 +167,13 @@ export function RecoveryAttemptDrawer({
           size="lg"
           variant="destructive"
           className="w-full"
-          onClick={() => resolve("veto")}
+          onClick={veto}
           disabled={isPending || isExpired}
-          loading={pendingAction === "veto"}
+          loading={isVetoing}
           loadingLabel={t("vetoingButton")}
         >
           {t("vetoButton")}
         </Button>
-        {currentAttempt.role === "owner" && (
-          <Button
-            size="lg"
-            variant="secondary"
-            className="w-full"
-            onClick={() => resolve("acknowledge")}
-            disabled={isPending}
-            loading={pendingAction === "acknowledge"}
-            loadingLabel={t("allowingButton")}
-          >
-            {t("allowButton")}
-          </Button>
-        )}
         {actionError && (
           <p className="text-destructive text-center text-sm">{actionError}</p>
         )}

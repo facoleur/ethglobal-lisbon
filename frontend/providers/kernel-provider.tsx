@@ -8,8 +8,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Address, Hex } from "viem";
+import { concatHex, toHex, type Address, type Hex } from "viem";
 import { useWalletStore } from "@/lib/store/wallet";
+import { tarWebAuthnValidatorAbi } from "@/lib/contracts/tar-recovery";
+import { publicClient, webAuthnValidatorAddress } from "@/lib/kernel/config";
 import {
   createKernelSession,
   restoreKernelSession,
@@ -54,6 +56,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
   const accountAddress = useWalletStore((s) => s.accountAddress);
   const publicKey = useWalletStore((s) => s.publicKey);
   const setCredential = useWalletStore((s) => s.setCredential);
+  const clearWallet = useWalletStore((s) => s.clear);
 
   /* auto-restore session from persisted credential — sans cérémonie WebAuthn */
   useEffect(() => {
@@ -86,6 +89,55 @@ export function KernelProvider({ children }: { children: ReactNode }) {
 
     restore();
   }, [credentialId, accountAddress, publicKey]);
+
+  useEffect(() => {
+    const connectedAddress = session?.account.address;
+    if (status !== "connected" || !connectedAddress || !publicKey) return;
+
+    let cancelled = false;
+    const verifyPasskeyIsCurrent = async () => {
+      try {
+        const [pubKeyX, pubKeyY] = await publicClient.readContract({
+          address: webAuthnValidatorAddress,
+          abi: tarWebAuthnValidatorAbi,
+          functionName: "keyData",
+          args: [connectedAddress],
+        });
+        if (pubKeyX === BigInt(0) && pubKeyY === BigInt(0)) return;
+
+        const onchainPublicKey = concatHex([
+          toHex(pubKeyX, { size: 32 }),
+          toHex(pubKeyY, { size: 32 }),
+        ]);
+        if (
+          !cancelled &&
+          onchainPublicKey.toLowerCase() !== publicKey.toLowerCase()
+        ) {
+          setSession(null);
+          setStatus("disconnected");
+          setPendingMode(null);
+          clearWallet();
+        }
+      } catch {
+        // Counterfactual accounts do not have validator state until deployment.
+      }
+    };
+
+    void verifyPasskeyIsCurrent();
+    const interval = window.setInterval(verifyPasskeyIsCurrent, 10_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void verifyPasskeyIsCurrent();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [clearWallet, publicKey, session?.account.address, status]);
 
   const connect = async (
     mode: PasskeyMode,

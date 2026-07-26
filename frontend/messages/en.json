@@ -121,15 +121,12 @@
         "expiredLabel": "Lock time expired",
         "vetoButton": "Veto recovery",
         "vetoingButton": "Vetoing…",
-        "allowButton": "I initiated this",
-        "allowingButton": "Confirming…",
         "vetoSuccess": "Recovery attempt vetoed.",
         "vetoFailed": "The veto could not be submitted.",
         "relayerUnavailable": "The veto relayer is not configured.",
         "identityNotInGroup": "This passkey identity is not in the active defense group.",
         "proofGenerationFailed": "The Semaphore proof could not be generated.",
-        "contractRejected": "The contract rejected the veto: {reason}.",
-        "allowSuccess": "Recovery attempt acknowledged."
+        "contractRejected": "The contract rejected the veto: {reason}."
       },
       "EnrollmentQrScanner": {
         "waitingForFirstFrame": "Hold the animated QR inside the frame",
