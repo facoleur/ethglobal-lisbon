@@ -90,7 +90,11 @@ export default function HomePage() {
         </div>
       </div>
 
-      <SendDrawer open={sendOpen} onOpenChange={setSendOpen} />
+      <SendDrawer
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        balance={balance}
+      />
       <ReceiveDrawer open={receiveOpen} onOpenChange={setReceiveOpen} />
       <TarDrawer
         open={tarOpen}

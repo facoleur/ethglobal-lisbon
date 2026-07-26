@@ -210,6 +210,7 @@
       "sendingButton": "Sending…",
       "invalidRecipient": "Enter a valid recipient address.",
       "invalidAmount": "Enter an amount greater than zero.",
+      "insufficientBalance": "Amount exceeds your available balance.",
       "sendFailed": "Transaction failed: {message}",
       "success": "ETH sent successfully."
     },
