@@ -235,7 +235,7 @@ contract TARRecoveryExecutorV2Test is Test {
         uint256[] memory members = _members(3);
 
         vm.expectEmit(true, true, false, true, address(executor));
-        emit ITARRecoveryV2.WatchTowerGroupRegenerated(address(account), 1, 3);
+        emit ITARRecoveryV2.WatchTowerGroupRegenerated(address(account), 1, 3, 1);
         vm.prank(address(account));
         executor.regenerateWatchTowerGroup(members);
 

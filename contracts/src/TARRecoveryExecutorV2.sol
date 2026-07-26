@@ -67,6 +67,13 @@ contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
     // 0 = no pending commitment; otherwise the block number `requestRecovery` was called at.
     mapping(bytes32 commitment => uint256 commitBlock) public pendingCommitments;
     mapping(address addressToRecover => RecoveryRequest request) public recoveries;
+    // Bumped on every successful `regenerateWatchTowerGroup` for the account. `groupId` itself
+    // isn't incremental per-account (it's a single global counter shared across every account's
+    // groups), so the front-end can't use it alone to tell "this is the Nth group version for
+    // this user" — `epochOf` gives it that per-account, monotonic cursor to key and sync its
+    // off-chain saved precommitments against.
+    mapping(address account => uint256) public epochOf;
+
     // Current Semaphore defender group per account. Replaced wholesale on every
     // `regenerateWatchTowerGroup` call — the previous `groupId`, if any, is never referenced
     // again, so there is no notion of "removing" a stale group here.
@@ -225,9 +232,13 @@ contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
         uint256 groupId = groupOf[addressToRecover];
         if (groupId == 0) revert WatchTowerGroupNotConfigured();
 
-        if (proof.scope != uint256(uint160(addressToRecover))) revert ScopeMismatch();
+        if (proof.scope != uint256(uint160(addressToRecover))) {
+            revert ScopeMismatch();
+        }
 
-        if (!semaphore.verifyProof(groupId, proof)) revert InvalidWatchTowerProof();
+        if (!semaphore.verifyProof(groupId, proof)) {
+            revert InvalidWatchTowerProof();
+        }
 
         uint256 stake = req.stakedValue;
         req.status = RecoveryStatus.Rejected;
@@ -245,12 +256,15 @@ contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
     /// computed entirely off-chain. `admin` on the new Semaphore group must be the account itself
     /// (not this module), so both `createGroup` and `addMembers` are forwarded through
     /// `executeFromExecutor` — the same account-as-caller mechanism `finalizeRecovery` already
-    /// uses to reach `TARWebAuthnValidator.setNewOwner`. `groupOf` is only updated after both
-    /// calls succeed; a revert partway through (e.g. `addMembers` failing) leaves it untouched.
+    /// uses to reach `TARWebAuthnValidator.setNewOwner`. `groupOf` and `epochOf` are only updated
+    /// after both calls succeed; a revert partway through (e.g. `addMembers` failing) leaves both
+    /// untouched.
     function regenerateWatchTowerGroup(uint256[] calldata members) external {
         if (!_isInitialized(msg.sender)) revert NotInitialized(msg.sender);
         uint256 memberCount = members.length;
-        if (memberCount == 0 || memberCount > MAX_GROUP_SIZE) revert InvalidGroupSize();
+        if (memberCount == 0 || memberCount > MAX_GROUP_SIZE) {
+            revert InvalidGroupSize();
+        }
 
         // `ISemaphore.createGroup` has three overloads; `abi.encodeCall` can't disambiguate a
         // member access to it (neither off the type nor off the `semaphore` instance) even with
@@ -271,7 +285,8 @@ contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
             );
 
         groupOf[msg.sender] = groupId;
-        emit WatchTowerGroupRegenerated(msg.sender, groupId, memberCount);
+        uint256 epoch = ++epochOf[msg.sender];
+        emit WatchTowerGroupRegenerated(msg.sender, groupId, memberCount, epoch);
     }
 
     function _isInitialized(address smartAccount) internal view returns (bool) {

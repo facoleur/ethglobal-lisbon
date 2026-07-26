@@ -83,8 +83,12 @@ interface ITARRecoveryV2 is IExecutor {
     event RecoveryFinalized(address indexed addressToRecover);
 
     /// @dev `msg.sender`'s own Semaphore defender group replaced wholesale — never additive, no
-    /// notion of adding/removing a single member at the contract level.
-    event WatchTowerGroupRegenerated(address indexed account, uint256 indexed groupId, uint256 memberCount);
+    /// notion of adding/removing a single member at the contract level. `epoch` is `epochOf[account]`
+    /// after the bump, i.e. the version of this group — `groupId` alone isn't incremental per
+    /// account, so this is what the front-end keys its off-chain saved precommitments against.
+    event WatchTowerGroupRegenerated(
+        address indexed account, uint256 indexed groupId, uint256 memberCount, uint256 epoch
+    );
 
     /// @dev Owner of `msg.sender`'s own account only — no separate `account` parameter.
     function updateRecoveryParams(uint256 lockValue, uint256 lockTime) external;
