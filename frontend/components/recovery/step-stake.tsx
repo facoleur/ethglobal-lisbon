@@ -31,13 +31,12 @@ export function StepStake() {
     lockValue,
     lockTime,
     broadcasterAddress,
-    requiredFunding,
     setRecoverySigner,
     clear,
   } = useRecoveryStore();
   const [isCreatingPasskey, setIsCreatingPasskey] = useState(false);
   const recoverySubmission = useSubmitTarRecovery();
-  const fundingAmount = BigInt(requiredFunding ?? "0");
+  const fundingAmount = BigInt(lockValue ?? "0") + BROADCASTER_GAS_BUFFER;
   const broadcasterBalance = useBalance({
     address: broadcasterAddress ?? undefined,
     query: {
