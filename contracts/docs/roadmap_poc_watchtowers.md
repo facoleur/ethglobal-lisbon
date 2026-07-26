@@ -5,7 +5,12 @@ Construite sur `contracts_context-full-implementation.md` (POC1) et sur la discu
 ## Décisions actées (rappel, pour que ce document se suffise à lui-même)
 
 - **Une seule fonction de challenge.** Owner et watch towers empruntent le même chemin : une preuve Semaphore. Plus aucun appel `IERC1271.isValidSignature` dans `challengeRecovery`. `TARWebAuthnValidator` continue d'exister pour la signature normale des transactions du compte et pour la rotation de clé dans `finalizeRecovery` — aucun changement à lui apporter pour ce lot.
-- **Vérification via `validateProof`** (state-changing), pas `verifyProof`.
+- **Vérification via `verifyProof`** (`view`, retourne un booléen), pas `validateProof`. Décision
+  révisée depuis une première version de ce document — voir `context_mA_v2.md` §6 point 5 et
+  `context_mB_v2.md` §3 pour le raisonnement complet : `verifyProof` ne fait aucun suivi de
+  nullifier côté Semaphore (seul `validateProof`, jamais appelé ici, le ferait), donc la
+  protection contre un double-veto sur une même tentative vient uniquement du `status` de
+  `TARRecoveryExecutorV2`, pas de Semaphore.
 - **`scope` stable par compte** (dérivé de `addressToRecover`), pas par tentative. Résidu accepté et documenté : un même défenseur (owner ou WT) réutilise le même nullifier à chaque veto sur ce compte, donc "c'est le même défenseur que la dernière fois" est visible dans les events — jamais son identité. Ne pas corriger.
 - **Admin du groupe Semaphore = le smart wallet lui-même** (pas le module).
 - **Pas de suppression de membre en storage.** Tout changement (ajout, retrait, ou simple rotation de padding) passe par une régénération complète : nouveau `createGroup` + `addMembers` avec la liste entière recalculée côté front. Le contrat n'a aucune notion d'"ajout" ou de "retrait" individuel.
@@ -18,8 +23,9 @@ Construite sur `contracts_context-full-implementation.md` (POC1) et sur la discu
 
 - **`MAX_GROUP_SIZE = 16`, owner inclus.** Le brainstorming original disait "16 WT max" avant que l'owner ne devienne lui-même un défenseur ; j'assume que le plafond couvre désormais owner + WT + padding confondus, à corriger en un seul endroit (une constante) si l'équipe tranche autrement.
 - **Adresse de `Semaphore.sol` par environnement.** Anvil : auto-déployé dans le script de déploiement (Milestone F). Sepolia : adresse canonique PSE à vérifier avant intégration ; si absente ou version incompatible, déploiement propre en fallback — même logique de go/no-go que le précompile P-256 en POC1.
-- **Forme exacte de `ISemaphore.SemaphoreProof`** (`merkleTreeDepth`, `merkleTreeRoot`, `nullifier`, `message`, `scope`, `points`) et signature exacte de `validateProof`/`createGroup`/`addMembers` — à confirmer contre la version installée de `@semaphore-protocol/contracts`, pas contre la doc générale.
-- **Comportement d'échec de `validateProof`** (revert avec custom error vs retour booléen) — conditionne si `challengeRecovery` a besoin d'un `require` explicite après l'appel ou si l'échec est déjà terminal.
+- **Forme exacte de `ISemaphore.SemaphoreProof`** (`merkleTreeDepth`, `merkleTreeRoot`, `nullifier`, `message`, `scope`, `points`) et signature exacte de `verifyProof`/`createGroup`/`addMembers` — à confirmer contre la version installée de `@semaphore-protocol/contracts`, pas contre la doc générale.
+
+Hypothèse tranchée depuis (n'est plus une hypothèse ouverte) : **comportement d'échec de `verifyProof`** — vérifié dans le vrai `Semaphore.sol` v4.0.0 (voir `context_mA_v2.md` §6 point 5) : `verifyProof` est `view` et retourne simplement `false` si la preuve cryptographique est invalide (pas de revert pour cette raison précise) ; il peut en revanche revert pour des raisons structurelles (`Semaphore__GroupHasNoMembers`, `Semaphore__MerkleTreeDepthIsNotSupported`, `Semaphore__MerkleTreeRootIsNotPartOfTheGroup`, `Semaphore__MerkleTreeRootIsExpired`). `challengeRecovery` (Milestone D) a donc bien besoin d'un `require(semaphore.verifyProof(...), ...)` explicite après l'appel.
 
 ---
 
@@ -38,13 +44,31 @@ Construite sur `contracts_context-full-implementation.md` (POC1) et sur la discu
 
 **Fichier** : `test/mocks/MockSemaphore.sol`
 
-- Implémente la surface minimale d'`ISemaphore` nécessaire : `createGroup`, `addMembers`, `validateProof`.
-- `createGroup` : incrémente un compteur, enregistre `admins[groupId] = msg.sender`, retourne `groupId`.
-- `addMembers` : `require(msg.sender == admins[groupId])`, stocke la liste de commitments (pas besoin de reproduire le vrai LeanIMT — un simple stockage de tableau suffit pour un mock).
-- `validateProof` : contrôlable par le test (un flag `shouldSucceed` settable, ou une vérification triviale "le nullifier n'a pas déjà été consommé pour ce scope" pour tester le rejet de replay sans reproduire Groth16).
-- Même rôle que `MockERC7579Account` en POC1 : découpler les bugs de logique métier de `TARRecoveryExecutorV2` des bugs de vérification cryptographique réelle, qui sont testés séparément (Milestone E).
+- Implémente `ISemaphore` en entier (conformité d'interface), avec une logique réelle seulement
+  sur les trois fonctions effectivement appelées par `TARRecoveryExecutorV2` : `createGroup`,
+  `addMembers`, `verifyProof`. Le reste (`createGroup()`/`createGroup(admin)` 0/1-arg,
+  `updateGroupAdmin`, `acceptGroupAdmin`, `updateGroupMerkleTreeDuration`, `addMember` singulier,
+  `updateMember`, `removeMember`, et **`validateProof`** — jamais appelée par le contrat, voir
+  ci-dessous) reste un stub qui revert, pour que le mock compile comme un `ISemaphore` complet
+  sans feindre un comportement qu'il n'a pas.
+- `createGroup(admin, duration)` : incrémente un compteur, enregistre `admins[groupId] = admin`
+  (l'admin passé en paramètre — celui que `TARRecoveryExecutorV2` fait viser au compte via
+  `executeFromExecutor`, pas `msg.sender` qui serait le compte lui-même de toute façon dans ce
+  chemin), retourne `groupId`.
+- `addMembers` : `require(msg.sender == admins[groupId])`, stocke la liste de commitments (pas
+  besoin de reproduire le vrai LeanIMT — un simple stockage de tableau suffit pour un mock).
+- `verifyProof` : `view`, contrôlable par le test (un flag `forcedResult` settable par `groupId`),
+  retourné tel quel. Ne simule **aucun** suivi de nullifier — `verifyProof` n'en fait pas non plus
+  dans le vrai `Semaphore.sol` (voir décision ci-dessus) ; reproduire éventuellement le revert
+  structurel `Semaphore__GroupHasNoMembers` si le groupe ciblé n'a aucun membre, utile pour tester
+  le cas "compte jamais configuré".
+- Même rôle que `MockERC7579Account` en POC1 : découpler les bugs de logique métier de
+  `TARRecoveryExecutorV2` des bugs de vérification cryptographique réelle (Groth16, LeanIMT), qui
+  sont testés séparément (Milestone E).
 
-*Fini quand* : le mock compile et expose un comportement contrôlable pour les cas succès/échec/replay-nullifier.
+*Fini quand* : le mock compile comme un `ISemaphore` complet et expose un comportement
+contrôlable pour `verifyProof` (succès/échec, sans suivi de nullifier) ainsi que pour l'admin
+check d'`addMembers`.
 
 ## Milestone C — `regenerateWatchTowerGroup`
 
@@ -77,11 +101,15 @@ function challengeRecovery(
 
 - `require(recoveries[addressToRecover].status == RecoveryStatus.Revealed)`.
 - Vérifie que `proof.scope` correspond à la valeur attendue pour ce compte (`uint256(uint160(addressToRecover))` ou équivalent) — lie la preuve à ce compte précis, en plus du `groupId` déjà scopant.
-- Appelle `semaphore.validateProof(groupOf[addressToRecover], proof)`. Comportement en cas d'échec à confirmer (voir hypothèses) — poser un `require` explicite seulement si `validateProof` retourne un booléen plutôt que de revert lui-même.
+- Appelle `require(semaphore.verifyProof(groupOf[addressToRecover], proof), ...)` — `verifyProof`
+  est `view` et retourne `false` sur preuve cryptographique invalide plutôt que de revert
+  lui-même (voir décision actée plus haut), donc le `require` explicite est nécessaire ici. Peut
+  aussi revert directement pour des raisons structurelles (groupe vide, racine expirée, etc.),
+  auquel cas ce `require` n'est simplement jamais atteint.
 - CEI inchangé : `status = Rejected` avant le transfert du stake, `ReentrancyGuard` conservé.
 - `event RecoveryRejected(address indexed addressToRecover);` — signature inchangée, plus de paramètre `broadcasterAddress`/signature à logger puisque l'identité du défenseur n'est justement jamais on-chain.
 
-*Fini quand* : tests contre `MockSemaphore` — veto accepté fait passer `status` à `Rejected` et transfère le stake, veto refusé (proof invalide côté mock) revert sans écriture, un deuxième appel après un premier veto réussi revert sur le check de `status` (pas besoin d'atteindre `validateProof` pour le bloquer — la state machine protège déjà ce cas, indépendamment de la politique de nullifier de Semaphore).
+*Fini quand* : tests contre `MockSemaphore` — veto accepté fait passer `status` à `Rejected` et transfère le stake, veto refusé (`verifyProof` renvoie `false` côté mock) revert sans écriture, un deuxième appel après un premier veto réussi revert sur le check de `status` (pas besoin d'atteindre `verifyProof` pour le bloquer — la state machine protège déjà ce cas ; noter que Semaphore lui-même ne protège pas contre un replay de preuve ici, puisque `verifyProof` ne fait aucun suivi de nullifier — voir décision actée plus haut).
 
 ## Milestone E — Vecteur de test croisé JS/Solidity (vraie preuve Semaphore)
 

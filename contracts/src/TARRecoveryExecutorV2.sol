@@ -15,15 +15,14 @@ import {ITARRecoveryV2} from "./interfaces/ITARRecoveryV2.sol";
 /// `RecoveryStatus`, `RecoveryConfig`, `RecoveryRequest`, `configs`, `pendingCommitments`,
 /// `recoveries`, the commit-reveal events, `onInstall`/`onUninstall`/`isModuleType`/
 /// `isInitialized` and `MIN_COMMIT_REVEAL_BLOCKS` are unchanged, character for character. V1's
-/// `challengeRecovery` (owner-only, ERC-1271 `ownerSignature`) is gone entirely in this milestone
-/// — Milestone D reintroduces it unified for the owner and watch towers behind a single Semaphore
-/// proof, replacing the ERC-1271 path rather than sitting alongside it. This milestone only adds
-/// the storage and `regenerateWatchTowerGroup` needed to manage a defender group ahead of that.
+/// `challengeRecovery` (owner-only, ERC-1271 `ownerSignature`) is gone entirely — replaced by a
+/// single Semaphore-proof path shared by the owner and watch towers alike; no `IERC1271`/
+/// `ownerSignature`/`rejectHash` exists anywhere in this contract.
 contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
     enum RecoveryStatus {
         None, // no recovery in progress on this account
         Revealed, // reveal done, challenge window (lockTime) open
-        Rejected, // rejected by a defender, stake returned to addressToRecover (Milestone D)
+        Rejected, // rejected by a defender, stake returned to addressToRecover
         Finalized // finalized, new signer installed, stake returned to addressToRecover
     }
 
@@ -76,6 +75,15 @@ contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
     constructor(address _validator, address _semaphore) {
         validator = _validator;
         semaphore = ISemaphore(_semaphore);
+
+        // Burn group 0: the real `Semaphore.sol` assigns group ids by post-incrementing
+        // `groupCounter` (starts at 0), so group 0 is a legitimate, assignable id —
+        // indistinguishable in `groupOf` from "this account never configured watch towers"
+        // (which also defaults to 0). A throwaway group here, admin'd by this module (never a
+        // real account), guarantees every `groupOf[account]` this contract ever assigns is >= 1.
+        // Defense in depth, not a substitute for `challengeRecovery`'s own explicit
+        // `groupOf == 0` check — either one alone would close the gap; both are kept.
+        semaphore.createGroup(address(this), MERKLE_TREE_DURATION);
     }
 
     function onInstall(bytes calldata data) external payable {
@@ -192,6 +200,42 @@ contract TARRecoveryExecutorV2 is ITARRecoveryV2, ReentrancyGuard {
         if (!success) revert TransferFailed();
 
         emit RecoveryFinalized(addressToRecover);
+    }
+
+    /// @dev Owner and watch towers share this one path — no separate ERC-1271 owner check, no
+    /// caller identity logged on-chain beyond what the Semaphore proof itself reveals (nothing,
+    /// by design). Checks go cheapest-first: `status`, then `groupOf == 0` (see constructor for
+    /// why this is checked here too, not just defended against by burning group 0), then
+    /// `proof.scope` (a fail-fast against front-end bugs, not a security boundary — see
+    /// `ScopeMismatch` natspec), and only then the actual `verifyProof` call. `verifyProof` is
+    /// `view` (a STATICCALL under the hood) and returns `false` rather than reverting on an
+    /// invalid proof, so this needs its own explicit `require`-equivalent, unlike a
+    /// `validateProof`-shaped design would. CEI: `status` updated before the stake transfer,
+    /// `ReentrancyGuard` conserved from V1's `challengeRecovery`, even though `verifyProof` being
+    /// a STATICCALL already rules out state-changing reentrancy through it specifically.
+    function challengeRecovery(address addressToRecover, ISemaphore.SemaphoreProof calldata proof)
+        external
+        nonReentrant
+    {
+        RecoveryRequest storage req = recoveries[addressToRecover];
+        if (req.status != RecoveryStatus.Revealed) {
+            revert RecoveryNotRevealed(addressToRecover);
+        }
+
+        uint256 groupId = groupOf[addressToRecover];
+        if (groupId == 0) revert WatchTowerGroupNotConfigured();
+
+        if (proof.scope != uint256(uint160(addressToRecover))) revert ScopeMismatch();
+
+        if (!semaphore.verifyProof(groupId, proof)) revert InvalidWatchTowerProof();
+
+        uint256 stake = req.stakedValue;
+        req.status = RecoveryStatus.Rejected;
+
+        (bool success,) = addressToRecover.call{value: stake}("");
+        if (!success) revert TransferFailed();
+
+        emit RecoveryRejected(addressToRecover);
     }
 
     /// @dev Owner of `msg.sender`'s own account only, same calling pattern as

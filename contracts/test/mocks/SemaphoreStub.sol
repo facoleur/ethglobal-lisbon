@@ -19,7 +19,10 @@ contract SemaphoreStub {
         external
         returns (uint256 groupId)
     {
-        groupId = ++groupCounter;
+        // Post-increment, matching the real `Semaphore.sol` (`groupId = groupCounter++;`) — the
+        // first group ever created gets id 0, which matters for `TARRecoveryExecutorV2`'s
+        // constructor burning that id (see context_mC_v2.md §4).
+        groupId = groupCounter++;
         adminOf[groupId] = admin;
     }
 

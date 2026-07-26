@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
-// Wider range than the rest of our own code (`^0.8.28`): `TARRecoveryExecutorV2.sol` (which
-// imports this file) is pinned to exactly `0.8.23` by `lib/semaphore` — see its top-of-file
-// comment and `foundry.toml`. This interface has no Semaphore-specific syntax needs, so it stays
-// compatible with both that pin and everything else, rather than forcing a third exact version.
-pragma solidity ^0.8.21;
+// `challengeRecovery` below takes an `ISemaphore.SemaphoreProof`, which `lib/semaphore` pins to
+// exactly `pragma solidity 0.8.23;` (no caret) — see `foundry.toml`. Matches
+// `TARRecoveryExecutorV2.sol` (which imports this file) for the same reason.
+pragma solidity 0.8.23;
 
 import {IExecutor} from "kernel/interfaces/IERC7579Modules.sol";
+import {ISemaphore} from "@semaphore-protocol/contracts/interfaces/ISemaphore.sol";
 
 /// @notice TAR (Timelock Account Recovery) executor module (ERC-7579 type 2, `IExecutor`) — V2,
 /// Semaphore watch towers. `requestRecovery`/`revealRecovery`/`finalizeRecovery` and their errors/
-/// events are unchanged from `ITARRecovery` (V1). `challengeRecovery` does not exist yet in this
-/// interface — Milestone A only, unified owner+watch-tower challenge lands in Milestone D — so
-/// `InvalidRejectSignature` (specific to V1's ERC-1271 owner-signature check) is dropped along
-/// with it. `IExecutor` already provides `onInstall`/`onUninstall`/`isModuleType`/`isInitialized`
-/// and the `AlreadyInitialized`/`NotInitialized` errors (inherited from `IModule`);
-/// `NotInitialized` is reused here to check that `addressToRecover` has installed the module.
+/// events are unchanged from `ITARRecovery` (V1). `challengeRecovery` is unified for the owner
+/// and watch towers behind a single Semaphore proof — no `IERC1271`/`ownerSignature`/`rejectHash`
+/// path exists anywhere in V2, unlike V1; `InvalidRejectSignature` is dropped along with it.
+/// `IExecutor` already provides `onInstall`/`onUninstall`/`isModuleType`/`isInitialized` and the
+/// `AlreadyInitialized`/`NotInitialized` errors (inherited from `IModule`); `NotInitialized` is
+/// reused here to check that `addressToRecover` has installed the module.
 interface ITARRecoveryV2 is IExecutor {
     /// @dev lockValue == 0 or lockTime == 0 passed to `onInstall`/`updateRecoveryParams`.
     error InvalidRecoveryParams();
@@ -55,14 +55,30 @@ interface ITARRecoveryV2 is IExecutor {
     /// `MAX_GROUP_SIZE`.
     error InvalidGroupSize();
 
+    /// @dev `challengeRecovery` called against `addressToRecover` whose `groupOf` is still `0` —
+    /// i.e. it never called `regenerateWatchTowerGroup`. `0` is otherwise a legitimate Semaphore
+    /// group id (`groupCounter` starts at 0), so this can't be told apart from "legitimately
+    /// assigned to group 0" without this check; see `TARRecoveryExecutorV2`'s constructor, which
+    /// burns group 0 as a second, independent layer of defense against the same ambiguity.
+    error WatchTowerGroupNotConfigured();
+
+    /// @dev `challengeRecovery`'s `proof.scope` does not match `addressToRecover`. Cheap fail-fast
+    /// against front-end proof-generation bugs — not a security boundary on its own: `scope` is a
+    /// public Groth16 input, so a mismatched value already fails `verifyProof` on its own, and the
+    /// per-account `groupId` already prevents a proof generated for another account from applying
+    /// here.
+    error ScopeMismatch();
+
+    /// @dev `semaphore.verifyProof` returned `false` for `challengeRecovery`'s proof. `verifyProof`
+    /// is `view` and returns `false` on a cryptographically invalid proof rather than reverting
+    /// itself (unlike `validateProof`, never used here) — see `TARRecoveryExecutorV2.sol`.
+    error InvalidWatchTowerProof();
+
     event RecoveryParamsUpdated(address indexed account, uint256 lockValue, uint256 lockTime);
     event RecoveryRequested(bytes32 indexed commitment);
     event RecoveryRevealed(
         address indexed addressToRecover, address indexed broadcasterAddress, uint256 challengeDeadline
     );
-    /// @dev Not emitted by anything in this milestone — `challengeRecovery` returns in
-    /// Milestone D, unified for the owner and watch towers behind a single Semaphore proof path.
-    /// Declared here already so its signature doesn't shift once that function lands.
     event RecoveryRejected(address indexed addressToRecover);
     event RecoveryFinalized(address indexed addressToRecover);
 
@@ -94,6 +110,11 @@ interface ITARRecoveryV2 is IExecutor {
 
     /// @dev Anyone, callable only once `lockTime` has elapsed since reveal without a challenge.
     function finalizeRecovery(address addressToRecover) external;
+
+    /// @dev Owner and watch towers share this single path — no separate owner-only function.
+    /// `proof` must validate against `groupOf[addressToRecover]`'s current Semaphore group; the
+    /// caller's identity is never checked or logged on-chain beyond that.
+    function challengeRecovery(address addressToRecover, ISemaphore.SemaphoreProof calldata proof) external;
 
     /// @dev Owner of `msg.sender`'s own account only — same calling pattern as
     /// `updateRecoveryParams`. Replaces the account's entire Semaphore defender group (watch
