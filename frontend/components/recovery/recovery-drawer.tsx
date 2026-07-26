@@ -1,19 +1,19 @@
 "use client";
 
-import { StepStake } from "@/components/recovery/step-stake";
-import { StepWaiting } from "@/components/recovery/step-waiting";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { getAddress, isAddress } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Button } from "@/components/ui/button";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { FullscreenSheet } from "@/components/ui/fullscreen-sheet";
 import { AddressInput } from "@/components/ui/address-input";
 import { QrScanner } from "@/components/ui/qr-scanner";
+import { StepStake } from "@/components/recovery/step-stake";
+import { StepWaiting } from "@/components/recovery/step-waiting";
 import { useTarRecoveryPreflight } from "@/hooks/use-tar-recovery";
 import { BROADCASTER_GAS_BUFFER } from "@/lib/recovery";
 import { useRecoveryStore } from "@/lib/store/recovery";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
-import { getAddress, isAddress } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 type RecoveryDrawerProps = {
   open: boolean;
