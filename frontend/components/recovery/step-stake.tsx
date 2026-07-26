@@ -135,7 +135,7 @@ export function StepStake() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-1 flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold">{t("step2Title")}</h1>
           <p className="text-muted-foreground text-sm">{t("step2Subtitle")}</p>
@@ -189,12 +189,8 @@ export function StepStake() {
         </div>
 
         {!hasPassedFunding ? (
-          <div className="flex flex-col items-center gap-2">
-            <QrCode value={eip681Uri} />
-            <p className="text-muted-foreground text-center text-xs">
-              {t("qrCaption")}
-            </p>
-            <div className="mt-2 flex items-center gap-2 rounded-full bg-card px-3 py-2">
+          <div className="flex flex-1 flex-col items-center justify-center gap-4">
+            <div className="flex items-center gap-2 rounded-full bg-card px-3 py-2">
               <span className="size-2 animate-pulse rounded-full bg-foreground" />
               <p className="text-muted-foreground text-sm">
                 {t("waitingForFundingAmount", {
@@ -202,6 +198,7 @@ export function StepStake() {
                 })}
               </p>
             </div>
+            <QrCode value={eip681Uri} />
           </div>
         ) : (
           !isWorking && (
