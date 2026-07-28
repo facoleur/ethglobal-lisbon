@@ -1,7 +1,7 @@
 FRONTEND_DIR := frontend
 CONTRACTS_DIR := contracts
 
-.PHONY: dev build start lint install deploy setup check contracts-install contracts-build contracts-test deploy-kernel-anvil
+.PHONY: dev build start lint install deploy setup check contracts-install contracts-build contracts-test deploy-kernel-anvil deploy-tar-sepolia deploy-tar-v2-sepolia
 
 dev:
 	cd $(FRONTEND_DIR) && npm run dev
@@ -45,3 +45,9 @@ contracts-test:
 
 deploy-kernel-anvil:
 	cd $(CONTRACTS_DIR) && forge script script/DeployKernelBidon.s.sol --rpc-url http://localhost:8545 --broadcast
+
+deploy-tar-sepolia:
+	cd $(CONTRACTS_DIR) && forge script script/DeployTARSepolia.s.sol --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PK) --broadcast --verify
+
+deploy-tar-v2-sepolia:
+	cd $(CONTRACTS_DIR) && forge script script/DeployTARV2Sepolia.s.sol --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PK) --broadcast --verify
