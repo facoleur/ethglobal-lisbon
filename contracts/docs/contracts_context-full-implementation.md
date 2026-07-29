@@ -20,11 +20,7 @@ TAR (Timelock Account Recovery) remplace les guardians de recovery par un jeu é
 Le travail est découpé en sections traitées séquentiellement mais avec parallélisation possible entre 2a/2b, et entre la section 3 (architecture) et une piste de test de la logique métier menée en parallèle sans dépendances ERC-7579 (voir §6).
 
 - **Section 1 — Setup Foundry** : scaffold, dépendances (`forge-std`, `openzeppelin-contracts`, `account-abstraction` v0.7.0, `kernel`, `kernel-7579-plugins`), intégration Makefile/lefthook/CI. Traité en détail dans `context-section1.md`.
-- **Section 2a — Déploiement bidon Kernel/ERC-7579 (ECDSA)** : valide la mécanique Kernel/ERC-7579 (factory, `installModule`, `EntryPoint.handleOps`) avec un validator ECDSA standard, indépendamment du risque WebAuthn/P-256. Traité dans `context-section2a.md`.
-- **Section 2b — Spikes WebAuthn (Kernel) + précompile P-256** : go/no-go sur (1) le fonctionnement réel en tx (pas `eth_call`) du `WebAuthnValidator` de Kernel, et (2) la disponibilité réelle du précompile `0x0100` (RIP-7212/EIP-7951) sur Anvil et Sepolia. Traité dans `context-section2b.md`. **En cours au moment de la rédaction de ce document.**
-  - Contexte utile : le repo `zerodevapp/kernel-7579-plugins` contient un `WebAuthnValidator` maintenu (module type 1, P256/WebAuthn), pas une PR expérimentale isolée — le point encore ouvert est son bon fonctionnement en conditions réelles, pas son existence.
-  - Fallback si échec : validator WebAuthn Solidity pur (type Daimo/FCL), branché derrière la même interface.
-- **Section 3 — Architecture des contrats POC1** : objet principal de ce document, détaillée en §4.
+- **Section 2 (old 3) — Architecture des contrats POC1** : objet principal de ce document, détaillée en §4.
 
 **Stratégie de branches** : sections 1 et 2a considérées comme closes/mergées sur `main`. Section 2b menée sur sa propre branche (`feat/section-2b`), indépendante de 2a, basée sur `main` post-section-1 (pas de rebase croisé entre 2a et 2b). La section 3 (architecture des contrats) ne dépend pas du résultat de 2b pour démarrer — seule la bascule finale vers le validator WebAuthn (milestone 4, voir §5) en dépend.
 
