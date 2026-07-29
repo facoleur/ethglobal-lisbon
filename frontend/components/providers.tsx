@@ -5,12 +5,13 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
 import { useState } from "react";
 import { KernelProvider } from "@/providers/kernel-provider";
+import { sepoliaRpcUrl } from "@/lib/kernel/config";
 
 function makeWagmiConfig() {
   return createConfig({
     chains: [sepolia],
     transports: {
-      [sepolia.id]: http(),
+      [sepolia.id]: http(sepoliaRpcUrl),
     },
     // No wallet connectors — used only for contract reads
     connectors: [],

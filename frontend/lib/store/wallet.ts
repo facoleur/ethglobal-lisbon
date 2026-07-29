@@ -31,7 +31,11 @@ export const useWalletStore = create<WalletState>()(
       setCredential: (credentialId, accountAddress, publicKey) =>
         set({ credentialId, accountAddress, publicKey }),
       clear: () =>
-        set({ credentialId: null, accountAddress: null, publicKey: null }),
+        set({
+          credentialId: null,
+          accountAddress: null,
+          publicKey: null,
+        }),
     }),
     {
       name: "tar-wallet",

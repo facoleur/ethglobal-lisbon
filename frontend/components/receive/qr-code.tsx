@@ -19,7 +19,7 @@ export function QrCode({ value, size = 200 }: QrCodeProps) {
     generateStyledQRCodeSvg(value, {
       size,
       color: "#000000",
-      backgroundColor: "#FFFFFF",
+      backgroundColor: "var(--background)",
       outerEyeColor: "#000000",
       innerEyeColor: "#000000",
       outerEyeBorderRadius: 8,
@@ -32,6 +32,7 @@ export function QrCode({ value, size = 200 }: QrCodeProps) {
     };
   }, [value, size]);
 
+  // Generated QR code container.
   return (
     <div ref={containerRef} className="flex items-center justify-center" />
   );

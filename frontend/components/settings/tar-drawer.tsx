@@ -1,86 +1,114 @@
 "use client";
 
-import { useState } from "react";
-import { Drawer } from "vaul";
-import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { LockValueSlider } from "@/components/settings/lock-value-slider";
 import { LockTimePicker } from "@/components/settings/lock-time-picker";
+import { LockValueSlider } from "@/components/settings/lock-value-slider";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
+import { useUpdateRecoveryParams } from "@/hooks/use-tar-recovery";
+import type { LockTimeUnit } from "@/lib/contracts/tar-recovery";
+import { getTransactionErrorMessage } from "@/lib/errors";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const RECOMMENDED_LOCK_VALUE = 0.1;
 const RECOMMENDED_LOCK_TIME_VALUE = 7;
-const RECOMMENDED_LOCK_TIME_UNIT = "days";
+const RECOMMENDED_LOCK_TIME_UNIT: LockTimeUnit = "days";
 
 type TarDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void | Promise<void>;
 };
 
-export function TarDrawer({ open, onOpenChange }: TarDrawerProps) {
-  const t = useTranslations("App.Settings.TarDrawer");
+export function TarDrawer({ open, onOpenChange, onSuccess }: TarDrawerProps) {
+  const t = useTranslations("App.Recovery.TarDrawer");
+  const tCommon = useTranslations("Common");
+  const { updateRecoveryParams, isConfigured, isPending } =
+    useUpdateRecoveryParams();
   const [lockValue, setLockValue] = useState(RECOMMENDED_LOCK_VALUE);
   const [lockTimeValue, setLockTimeValue] = useState(
     RECOMMENDED_LOCK_TIME_VALUE,
   );
   const [lockTimeUnit, setLockTimeUnit] = useState(RECOMMENDED_LOCK_TIME_UNIT);
+  const [isSaving, setIsSaving] = useState(false);
+  const isBusy = isSaving || isPending;
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && isBusy) return;
+    onOpenChange(nextOpen);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateRecoveryParams(lockValue, lockTimeValue, lockTimeUnit);
+      await onSuccess?.();
+      toast.success(t("saveSuccess"));
+      onOpenChange(false);
+    } catch (cause) {
+      toast.error(
+        getTransactionErrorMessage(cause, tCommon("revokedPasskeyError")),
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const recommendedButton = (
+    <Button
+      variant="secondary"
+      size="xs"
+      disabled={isBusy}
+      onClick={() => {
+        setLockValue(RECOMMENDED_LOCK_VALUE);
+        setLockTimeValue(RECOMMENDED_LOCK_TIME_VALUE);
+        setLockTimeUnit(RECOMMENDED_LOCK_TIME_UNIT);
+      }}
+    >
+      {t("useRecommended")}
+    </Button>
+  );
 
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
-      <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-        <Drawer.Content className="bg-background fixed right-0 bottom-0 left-0 flex flex-col rounded-t-2xl">
-          <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-zinc-300" />
-          <div className="mx-auto w-full max-w-sm px-6 pt-4 pb-10 flex flex-col gap-6">
-            <Drawer.Title className="text-lg font-semibold">
-              {t("title")}
-            </Drawer.Title>
+    <BottomSheet
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={t("title")}
+      titleAction={recommendedButton}
+    >
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium text-foreground">
+          {t("lockValue")}
+        </label>
+        <LockValueSlider value={lockValue} onChange={setLockValue} />
+      </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">
-                  {t("lockValue")}
-                </label>
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => setLockValue(RECOMMENDED_LOCK_VALUE)}
-                >
-                  {t("lockValueRecommended")}
-                </Button>
-              </div>
-              <LockValueSlider value={lockValue} onChange={setLockValue} />
-            </div>
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium text-foreground">
+          {t("lockTime")}
+        </label>
+        <LockTimePicker
+          value={lockTimeValue}
+          unit={lockTimeUnit}
+          onValueChange={setLockTimeValue}
+          onUnitChange={setLockTimeUnit}
+        />
+      </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">
-                  {t("lockTime")}
-                </label>
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => {
-                    setLockTimeValue(RECOMMENDED_LOCK_TIME_VALUE);
-                    setLockTimeUnit(RECOMMENDED_LOCK_TIME_UNIT);
-                  }}
-                >
-                  {t("lockTimeRecommended")}
-                </Button>
-              </div>
-              <LockTimePicker
-                value={lockTimeValue}
-                unit={lockTimeUnit}
-                onValueChange={setLockTimeValue}
-                onUnitChange={setLockTimeUnit}
-              />
-            </div>
-
-            <Button size="lg" className="w-full rounded-xl">
-              {t("saveButton")}
-            </Button>
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+      {!isConfigured && (
+        <p className="text-muted-foreground text-sm">{t("notConfigured")}</p>
+      )}
+      <Button
+        size="lg"
+        className="w-full"
+        disabled={!isConfigured || isBusy}
+        onClick={handleSave}
+        loading={isBusy}
+        loadingLabel={t("savingButton")}
+      >
+        {t("saveButton")}
+      </Button>
+    </BottomSheet>
   );
 }

@@ -45,20 +45,37 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Mobile-optimized type scale — all sizes nudged up vs Tailwind defaults */
+  --text-xs: 0.8125rem; /* 13px  (was 12px) — nav labels, badges          */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.9375rem; /* 15px  (was 14px) — primary body, labels         */
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1.0625rem; /* 17px  (was 16px) — inputs, card text            */
+  --text-base--line-height: 1.625rem;
+  --text-lg: 1.1875rem; /* 19px  (was 18px) — drawer titles, action labels */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.375rem; /* 22px  (was 20px) — section headings             */
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 1.625rem; /* 26px  (was 24px) — page titles                  */
+  --text-2xl--line-height: 2rem;
+  --text-4xl: 2.5rem; /* 40px  (was 36px) — balance display              */
+  --text-4xl--line-height: 2.75rem;
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --brand: oklch(0.811 0.166 101);
+  --background: oklch(0.97 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --primary: var(--brand);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.92 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.92 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
@@ -89,8 +106,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--brand);
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -116,6 +133,113 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@utility squircle {
+  corner-shape: squircle;
+}
+
+/*
+ * Global squircle (iOS-style corner smoothing).
+ * Applies `corner-shape: squircle` to every element that carries any
+ * Tailwind `rounded-*` class (except `rounded-none` which has no radius,
+ * and `rounded-full` which must remain a perfect circle/pill).
+ *
+ * `corner-shape` is supported in Chrome 133+ / Edge 133+ and is a
+ * progressive enhancement: browsers that don't recognise it simply render
+ * the normal `border-radius` value unchanged.
+ */
+@layer base {
+  .rounded,
+  .rounded-sm,
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-4xl,
+  .rounded-t,
+  .rounded-t-sm,
+  .rounded-t-md,
+  .rounded-t-lg,
+  .rounded-t-xl,
+  .rounded-t-2xl,
+  .rounded-t-3xl,
+  .rounded-t-4xl,
+  .rounded-b,
+  .rounded-b-sm,
+  .rounded-b-md,
+  .rounded-b-lg,
+  .rounded-b-xl,
+  .rounded-b-2xl,
+  .rounded-b-3xl,
+  .rounded-b-4xl,
+  .rounded-l,
+  .rounded-l-sm,
+  .rounded-l-md,
+  .rounded-l-lg,
+  .rounded-l-xl,
+  .rounded-l-2xl,
+  .rounded-l-3xl,
+  .rounded-l-4xl,
+  .rounded-r,
+  .rounded-r-sm,
+  .rounded-r-md,
+  .rounded-r-lg,
+  .rounded-r-xl,
+  .rounded-r-2xl,
+  .rounded-r-3xl,
+  .rounded-r-4xl,
+  .rounded-s,
+  .rounded-s-sm,
+  .rounded-s-md,
+  .rounded-s-lg,
+  .rounded-s-xl,
+  .rounded-s-2xl,
+  .rounded-s-3xl,
+  .rounded-s-4xl,
+  .rounded-e,
+  .rounded-e-sm,
+  .rounded-e-md,
+  .rounded-e-lg,
+  .rounded-e-xl,
+  .rounded-e-2xl,
+  .rounded-e-3xl,
+  .rounded-e-4xl,
+  .rounded-tl,
+  .rounded-tl-sm,
+  .rounded-tl-md,
+  .rounded-tl-lg,
+  .rounded-tl-xl,
+  .rounded-tl-2xl,
+  .rounded-tl-3xl,
+  .rounded-tl-4xl,
+  .rounded-tr,
+  .rounded-tr-sm,
+  .rounded-tr-md,
+  .rounded-tr-lg,
+  .rounded-tr-xl,
+  .rounded-tr-2xl,
+  .rounded-tr-3xl,
+  .rounded-tr-4xl,
+  .rounded-bl,
+  .rounded-bl-sm,
+  .rounded-bl-md,
+  .rounded-bl-lg,
+  .rounded-bl-xl,
+  .rounded-bl-2xl,
+  .rounded-bl-3xl,
+  .rounded-bl-4xl,
+  .rounded-br,
+  .rounded-br-sm,
+  .rounded-br-md,
+  .rounded-br-lg,
+  .rounded-br-xl,
+  .rounded-br-2xl,
+  .rounded-br-3xl,
+  .rounded-br-4xl {
+    corner-shape: squircle;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -124,7 +248,7 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans bg-background;
   }
 
   html,
@@ -132,6 +256,10 @@
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: pan-y;
+  }
+
+  body {
+    padding-top: env(safe-area-inset-top);
   }
 
   input,

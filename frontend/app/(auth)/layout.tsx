@@ -12,6 +12,11 @@ export default function AuthLayout({
 }) {
   const pathname = usePathname();
   const back = !ROOT_AUTH_PAGES.includes(pathname);
+  const stretch = true;
 
-  return <ScreenLayout back={back}>{children}</ScreenLayout>;
+  return (
+    <ScreenLayout back={back} stretch={stretch}>
+      {children}
+    </ScreenLayout>
+  );
 }

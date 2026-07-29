@@ -2,16 +2,13 @@
 
 import { useTranslations } from "next-intl";
 
-export default function RecoveryError({
-  reset,
-}: {
-  error: Error;
-  reset: () => void;
-}) {
+type ErrorPageProps = { reset: () => void };
+
+export function ErrorPage({ reset }: ErrorPageProps) {
   const t = useTranslations("Common");
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full flex-col items-center justify-center gap-4">
       <p className="text-destructive text-sm">{t("error")}</p>
       <button onClick={reset} className="text-sm underline">
         {t("tryAgain")}
