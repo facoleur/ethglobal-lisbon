@@ -1,50 +1,50 @@
 # Architecture — Frontend (`frontend/`)
 
-Voir [`README.md`](README.md) pour la légende des statuts de maturité (🟢🟡🟠⚪). Pour le raisonnement derrière les choix listés ici, voir [`04-decisions.md`](04-decisions.md).
+See [`README.md`](README.md) for the maturity status legend (🟢🟡🟠⚪). For the reasoning behind the choices listed here, see [`04-decisions.md`](04-decisions.md).
 
-**Point de méthode important** : une bonne partie de cette doc contredit les specs de conception qui existaient avant l'implémentation (ex. `towers-design.md`, supprimé — décrivait les watch towers comme un mock localStorage). Le code actuel est nettement plus avancé que ces specs. Tout ce qui suit a été vérifié directement dans le code, pas déduit des documents de planification.
+**Important methodological note**: a good part of this doc contradicts the design specs that existed before implementation (e.g. `towers-design.md`, deleted — it described watch towers as a localStorage mock). The current code is substantially more advanced than those specs. Everything below was verified directly in the code, not inferred from planning documents.
 
-## Stack réelle
+## Actual stack
 
-Next.js 16 (App Router), React 19, TypeScript. Auth par passkey uniquement (voir `CLAUDE.md` racine, section "Auth model"). `wagmi` v3 pour les lectures de contrat, `permissionless.js` (ZeroDev SDK, Kernel v0.3.1, EntryPoint v0.7) pour les écritures via smart account. `zustand` (persist middleware, `localStorage`) pour l'état client. `@semaphore-protocol/{identity,group,proof}` v4.13.0 côté client pour tout ce qui touche aux watch towers. `next-intl`, `shadcn/ui`, `tailwindcss`, `vaul` (drawers), `motion`. Cible unique : **Sepolia** (`lib/kernel/config.ts`, `chain = sepolia`, en dur).
+Next.js 16 (App Router), React 19, TypeScript. Passkey-only auth (see root `CLAUDE.md`, "Auth model" section). `wagmi` v3 for contract reads, `permissionless.js` (ZeroDev SDK, Kernel v0.3.1, EntryPoint v0.7) for writes via the smart account. `zustand` (persist middleware, `localStorage`) for client state. `@semaphore-protocol/{identity,group,proof}` v4.13.0 client-side for everything watch-tower-related. `next-intl`, `shadcn/ui`, `tailwindcss`, `vaul` (drawers), `motion`. Single target: **Sepolia** (`lib/kernel/config.ts`, `chain = sepolia`, hardcoded).
 
-## Auth / compte Kernel — 🟢 Implémenté
+## Auth / Kernel account — 🟢 Implemented
 
-- `providers/kernel-provider.tsx` (`KernelProvider`) : restaure la session depuis `credentialId`/`accountAddress`/`publicKey` persistés (store `wallet`, `lib/store/wallet.ts`) sans cérémonie WebAuthn au chargement. Vérifie périodiquement (toutes les 10s + sur `visibilitychange`) que la clé publique locale correspond toujours à `TARWebAuthnValidator.keyData` on-chain — si elles divergent (ex. une recovery TAR a tourné la clé ailleurs), déconnexion locale automatique.
-- `hooks/use-kernel.ts` : `useKernelAccount`, `useRegisterPasskey` (onboarding), `useLoginPasskey`, `useRestoreRecoveredWallet` (post-recovery), `useSendUserOperation`/`useSendKernelTransaction` (passent par `client.sendUserOperation` + `waitForUserOperationReceipt` du SDK Kernel — un vrai UserOp, pas un appel direct).
-- `(app)/layout.tsx` : redirige vers `/login` si `credentialId === null` après hydratation du store — comportement documenté dans le `CLAUDE.md` racine, vérifié conforme au code.
+- `providers/kernel-provider.tsx` (`KernelProvider`): restores the session from the persisted `credentialId`/`accountAddress`/`publicKey` (`wallet` store, `lib/store/wallet.ts`) without a WebAuthn ceremony on load. Periodically checks (every 10s + on `visibilitychange`) that the local public key still matches `TARWebAuthnValidator.keyData` on-chain — if they diverge (e.g. a TAR recovery rotated the key elsewhere), automatic local disconnect.
+- `hooks/use-kernel.ts`: `useKernelAccount`, `useRegisterPasskey` (onboarding), `useLoginPasskey`, `useRestoreRecoveredWallet` (post-recovery), `useSendUserOperation`/`useSendKernelTransaction` (go through the Kernel SDK's `client.sendUserOperation` + `waitForUserOperationReceipt` — a real UserOp, not a direct call).
+- `(app)/layout.tsx`: redirects to `/login` if `credentialId === null` after the store hydrates — behavior documented in the root `CLAUDE.md`, verified to match the code.
 
-## Recovery pour soi-même (`(auth)/recover`) — 🟢 Implémenté
+## Recovery for oneself (`(auth)/recover`) — 🟢 Implemented
 
-*(Le `CLAUDE.md` racine mentionnait `(auth)/recovery` — chemin réel corrigé en `(auth)/recover`.)*
+*(The root `CLAUDE.md` used to mention `(auth)/recovery` — the actual path was corrected to `(auth)/recover`.)*
 
-- `hooks/use-tar-recovery.ts` : `useTarRecoveryPreflight` lit on-chain (module installé, `rootValidator` == `TARWebAuthnValidator` attendu, `configs`/`recoveries` du compte ciblé) pour déterminer un statut précis (`contract-unavailable`, `unsupported-account`, `module-missing`, `validator-mismatch`, `config-missing`, `ready`, `active`...) avant de laisser l'utilisateur s'engager dans le flow.
-- `useSubmitTarRecovery` : exécute le cycle **commit → attente de maturité (poll du block number) → reveal** via un wallet client "broadcaster" éphémère (`lib/recovery/broadcaster.ts`, clé privée détenue côté store `recovery`, pas un compte Kernel) qui envoie directement les transactions `requestRecovery`/`revealRecovery` (pas de sponsoring/UserOp ici — normal, ce broadcaster n'a pas de compte Kernel, c'est un simple EOA).
-- `useFinalizeTarRecovery` : lit le statut on-chain, appelle `finalizeRecovery` si toujours `Revealed`, sinon reflète directement `finalized`/`vetoed`.
-- `useUpdateRecoveryParams` : installe le module si absent, ou met à jour `lockValue`/`lockTime` ; si l'exécuteur actif est la V2 et qu'aucun groupe watch tower n'existe encore (`groupOf == 0`), génère un groupe par défaut (owner seul + padding) via `prepareDefenseGroupMembers` et l'inclut dans le même batch de transaction que `regenerateWatchTowerGroup`.
+- `hooks/use-tar-recovery.ts`: `useTarRecoveryPreflight` reads on-chain state (module installed, `rootValidator` == expected `TARWebAuthnValidator`, `configs`/`recoveries` for the target account) to determine a precise status (`contract-unavailable`, `unsupported-account`, `module-missing`, `validator-mismatch`, `config-missing`, `ready`, `active`...) before letting the user enter the flow.
+- `useSubmitTarRecovery`: runs the **commit → wait for maturity (poll block number) → reveal** cycle via an ephemeral "broadcaster" wallet client (`lib/recovery/broadcaster.ts`, private key held in the `recovery` store, not a Kernel account) that sends `requestRecovery`/`revealRecovery` transactions directly (no sponsoring/UserOp here — expected, since this broadcaster has no Kernel account, it's a plain EOA).
+- `useFinalizeTarRecovery`: reads the on-chain status, calls `finalizeRecovery` if still `Revealed`, otherwise directly reflects `finalized`/`vetoed`.
+- `useUpdateRecoveryParams`: installs the module if missing, or updates `lockValue`/`lockTime`; if the active executor is V2 and no watch tower group exists yet (`groupOf == 0`), generates a default group (owner only + padding) via `prepareDefenseGroupMembers` and includes it in the same transaction batch as `regenerateWatchTowerGroup`.
 
-## Watch towers — 🟢 Implémenté (identité, enrôlement, groupe, veto — bout en bout sur Sepolia)
+## Watch towers — 🟢 Implemented (identity, enrollment, group, veto — end-to-end on Sepolia)
 
-Contrairement à ce que suggérait la spec de planning (`towers-design.md`, supprimée) : ce n'est **pas** un mock localStorage isolé. C'est branché de bout en bout au contrat V2 réel.
+Contrary to what the planning spec suggested (`towers-design.md`, deleted): this is **not** an isolated localStorage mock. It's wired end-to-end to the real V2 contract.
 
-- **Identité déterministe** (`lib/watch-tower-identity.ts`) : dérivée de l'extension **WebAuthn PRF** du credential passkey (`evalByCredential`), jamais stockée ni transmise — voir `04-decisions.md`. `WATCH_TOWER_IDENTITY_COUNT = 100` identités indépendantes précalculables par relation.
-- **Enrôlement** (`lib/watch-tower-enrollment.ts`) : protocole QR maison (`tar-wt1`), en plusieurs frames chunkées (450 caractères/frame, 32 frames max) pour transporter les commitments d'une watch tower vers l'owner (scan bidirectionnel).
-- **Génération de preuve** (`lib/watch-tower-proof.ts`) : utilise réellement `@semaphore-protocol/{identity,group,proof}` — `generateProof` (Groth16 réel côté client), pas un mock.
-- **Gestion du groupe de défense** (`lib/watch-tower-policy.ts`, `hooks/use-watch-tower-policy.ts` → `useRegenerateWatchTowerGroup`) : construit la liste de membres (watch towers actives + identité du jour de l'owner + padding), appelle `regenerateWatchTowerGroup` sur le vrai contrat V2 déployé.
-- **Veto** (`app/api/veto/route.ts`) : route serveur qui **relaie réellement la transaction** `challengeRecovery` via une clé privée serveur (`TAR_RELAYER_PRIVATE_KEY`), après simulation (`simulateContract`) — l'appelant (la watch tower) n'a donc pas besoin d'ETH pour vetoter, le relais sponsorise le gas de cette transaction précise. Valide `proof.scope == addressToRecover` avant tout envoi.
-- **Reconstruction du groupe de défense** (`app/api/defense-group/route.ts`) : ne stocke rien côté serveur — reconstruit la liste de membres et la `merkleTreeRoot` à la demande, en lisant l'event `MembersAdded` on-chain via l'API Blockscout Sepolia et en vérifiant la racine contre `Semaphore.getMerkleTreeRoot` en direct.
-- **Synchronisation des tentatives** (`hooks/use-recovery-attempt-sync.ts` → `useRecoveryAttemptSync`) : poll on-chain (15s + `visibilitychange`) de `recoveries`/`configs` pour le compte propre de l'utilisateur **et** pour chaque wallet qu'il surveille en tant que watch tower (`watchedWallets`, store `watch-towers`) — alimente le hub `RecoveryCenter`.
+- **Deterministic identity** (`lib/watch-tower-identity.ts`): derived from the passkey credential's **WebAuthn PRF** extension (`evalByCredential`), never stored or transmitted — see `04-decisions.md`. `WATCH_TOWER_IDENTITY_COUNT = 100` independent identities precomputable per relationship.
+- **Enrollment** (`lib/watch-tower-enrollment.ts`): homegrown QR protocol (`tar-wt1`), split into chunked frames (450 characters/frame, 32 frames max) to carry a watch tower's commitments to the owner (bidirectional scan).
+- **Proof generation** (`lib/watch-tower-proof.ts`): actually uses `@semaphore-protocol/{identity,group,proof}` — `generateProof` (real client-side Groth16), not a mock.
+- **Defense group management** (`lib/watch-tower-policy.ts`, `hooks/use-watch-tower-policy.ts` → `useRegenerateWatchTowerGroup`): builds the member list (active watch towers + the owner's identity of the day + padding), calls `regenerateWatchTowerGroup` on the real deployed V2 contract.
+- **Veto** (`app/api/veto/route.ts`): a server route that **actually relays the `challengeRecovery` transaction** via a server-held private key (`TAR_RELAYER_PRIVATE_KEY`), after simulation (`simulateContract`) — so the caller (the watch tower) doesn't need ETH to veto, the relay sponsors the gas for this specific transaction. Validates `proof.scope == addressToRecover` before sending anything.
+- **Defense group reconstruction** (`app/api/defense-group/route.ts`): stores nothing server-side — reconstructs the member list and `merkleTreeRoot` on demand, by reading the `MembersAdded` event on-chain via the Blockscout Sepolia API and verifying the root live against `Semaphore.getMerkleTreeRoot`.
+- **Attempt synchronization** (`hooks/use-recovery-attempt-sync.ts` → `useRecoveryAttemptSync`): polls on-chain (15s + `visibilitychange`) `recoveries`/`configs` for the user's own account **and** for every wallet they watch as a watch tower (`watchedWallets`, `watch-towers` store) — feeds the `RecoveryCenter` hub.
 
-**🟠 Nuance de maturité** : `components/recovery-center/index.tsx` importe `simulateRecoveryAttempt` (`lib/recovery-center.ts`) à côté du flux réel décrit ci-dessus — signale qu'au moins un sous-chemin de démo/test reste simulé dans cet écran. Pas vérifié précisément lequel pour cette doc ; à contrôler avant de considérer *tout* l'écran `RecoveryCenter` comme prouvé en conditions réelles.
+**🟠 Maturity nuance**: `components/recovery-center/index.tsx` imports `simulateRecoveryAttempt` (`lib/recovery-center.ts`) alongside the real flow described above — a sign that at least one demo/test sub-path remains simulated in this screen. Not verified precisely which one for this doc; to be checked before treating *all* of the `RecoveryCenter` screen as proven under real conditions.
 
-## `(app)/recovery` → `RecoveryCenter` — 🟢/🟠 Implémenté (hub owner-side)
+## `(app)/recovery` → `RecoveryCenter` — 🟢/🟠 Implemented (owner-side hub)
 
-*(Absent du `CLAUDE.md` racine avant correction — à ne pas confondre avec `(auth)/recover` ci-dessus, qui est le flow "j'ai perdu mon appareil".)*
+*(Missing from the root `CLAUDE.md` before the fix — not to be confused with `(auth)/recover` above, which is the "I lost my device" flow.)*
 
-Écran central pour un utilisateur déjà connecté : protection du wallet (config `lockValue`/`lockTime` + groupe de défense), liste des watch towers configurées, wallets surveillés en tant que watch tower, tentatives de recovery en cours (les siennes et celles qu'il surveille) avec actions de veto. Composants dans `components/recovery-center/`.
+Central screen for an already-connected user: wallet protection (`lockValue`/`lockTime` config + defense group), list of configured watch towers, wallets watched as a watch tower, ongoing recovery attempts (their own and the ones they watch) with veto actions. Components under `components/recovery-center/`.
 
-## Ce qui reste à vérifier / non couvert par cette doc
+## What's still unverified / not covered by this doc
 
-- Le sous-chemin `simulateRecoveryAttempt` mentionné ci-dessus.
-- La génération de la clé privée du broadcaster (`lib/recovery/broadcaster.ts` ne fait que construire le client à partir d'une clé déjà fournie — l'origine/le stockage de cette clé n'a pas été audité pour cette doc).
-- Aucun test automatisé (unitaire ou e2e) n'existe côté `frontend/` à la date de rédaction — seuls `typecheck`/`lint`/`build` sont scriptés dans `package.json`.
+- The `simulateRecoveryAttempt` sub-path mentioned above.
+- The generation of the broadcaster's private key (`lib/recovery/broadcaster.ts` only builds the client from an already-supplied key — the origin/storage of that key wasn't audited for this doc).
+- No automated tests (unit or e2e) exist on the `frontend/` side as of this writing — only `typecheck`/`lint`/`build` are scripted in `package.json`.
