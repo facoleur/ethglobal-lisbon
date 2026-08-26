@@ -34,5 +34,5 @@ In the "private address" setting (theorized in `01-concept.md`, not implemented)
 ### `no-real-userop-e2e-test`
 No test runs the full cycle through a real `EntryPoint.handleOps`/`PackedUserOperation` — the entire contract test suite (V1 and V2) exercises the logic via direct calls. Real behavior under a bundler/EntryPoint is therefore only validated indirectly, through production usage by the frontend (which does go through real UserOps for the Kernel account's own actions — but not for `requestRecovery`/`revealRecovery`/`finalizeRecovery` themselves, which are sent as direct transactions by an EOA broadcaster, see `03-architecture-frontend.md`).
 
-### `zk-group-storage-tradeoff` — [TO COMPLETE]
+### `zk-group-storage-tradeoff`
 A trade-off discussed several times outside the repo, never written down: **on-chain vs. off-chain** storage of the ZK Merkle tree/group, and **full tree vs. simple commitment** off-chain. The choice actually implemented is "on-chain Semaphore group (real `createGroup`/`addMembers`), reconstructed on demand on the front end via event logs + Blockscout, never stored in a DB" (`app/api/defense-group/route.ts`) — but the reasoning that led to this choice over the alternative isn't captured anywhere. To be filled in by whoever led that discussion.
