@@ -16,16 +16,12 @@ Next.js 16 (App Router), React 19, TypeScript. Passkey-only auth (see root `CLAU
 
 ## Recovery for oneself (`(auth)/recover`) — 🟢 Implemented
 
-*(The root `CLAUDE.md` used to mention `(auth)/recovery` — the actual path was corrected to `(auth)/recover`.)*
-
 - `hooks/use-tar-recovery.ts`: `useTarRecoveryPreflight` reads on-chain state (module installed, `rootValidator` == expected `TARWebAuthnValidator`, `configs`/`recoveries` for the target account) to determine a precise status (`contract-unavailable`, `unsupported-account`, `module-missing`, `validator-mismatch`, `config-missing`, `ready`, `active`...) before letting the user enter the flow.
 - `useSubmitTarRecovery`: runs the **commit → wait for maturity (poll block number) → reveal** cycle via an ephemeral "broadcaster" wallet client (`lib/recovery/broadcaster.ts`, private key held in the `recovery` store, not a Kernel account) that sends `requestRecovery`/`revealRecovery` transactions directly (no sponsoring/UserOp here — expected, since this broadcaster has no Kernel account, it's a plain EOA).
 - `useFinalizeTarRecovery`: reads the on-chain status, calls `finalizeRecovery` if still `Revealed`, otherwise directly reflects `finalized`/`vetoed`.
 - `useUpdateRecoveryParams`: installs the module if missing, or updates `lockValue`/`lockTime`; if the active executor is V2 and no watch tower group exists yet (`groupOf == 0`), generates a default group (owner only + padding) via `prepareDefenseGroupMembers` and includes it in the same transaction batch as `regenerateWatchTowerGroup`.
 
 ## Watch towers — 🟢 Implemented (identity, enrollment, group, veto — end-to-end on Sepolia)
-
-Contrary to what the planning spec suggested (`towers-design.md`, deleted): this is **not** an isolated localStorage mock. It's wired end-to-end to the real V2 contract.
 
 - **Deterministic identity** (`lib/watch-tower-identity.ts`): derived from the passkey credential's **WebAuthn PRF** extension (`evalByCredential`), never stored or transmitted — see `04-decisions.md`. `WATCH_TOWER_IDENTITY_COUNT = 100` independent identities precomputable per relationship.
 - **Enrollment** (`lib/watch-tower-enrollment.ts`): homegrown QR protocol (`tar-wt1`), split into chunked frames (450 characters/frame, 32 frames max) to carry a watch tower's commitments to the owner (bidirectional scan).
@@ -39,7 +35,7 @@ Contrary to what the planning spec suggested (`towers-design.md`, deleted): this
 
 ## `(app)/recovery` → `RecoveryCenter` — 🟢/🟠 Implemented (owner-side hub)
 
-*(Missing from the root `CLAUDE.md` before the fix — not to be confused with `(auth)/recover` above, which is the "I lost my device" flow.)*
+*(Not to be confused with `(auth)/recover` above, which is the "I lost my device" flow.)*
 
 Central screen for an already-connected user: wallet protection (`lockValue`/`lockTime` config + defense group), list of configured watch towers, wallets watched as a watch tower, ongoing recovery attempts (their own and the ones they watch) with veto actions. Components under `components/recovery-center/`.
 
