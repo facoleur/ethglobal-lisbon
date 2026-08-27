@@ -14,13 +14,13 @@ If smart accounts are to compete with EOAs not only on user experience but also 
 
 The mechanism rests on two account-level parameters. `lockValue` is the amount of ETH that must be staked to initiate a recovery. `lockTime` is the period that must elapse before the recovery can be finalized. A requester locks `lockValue` into a recovery contract authorized by the account. During `lockTime`, the legitimate owner retains the ability to reject the request: if they do, the stake is confiscated in favor of the targeted account. If the timelock expires without a valid rejection, the recovery finalizes.
 
-![](diagrams/01-recovery-flow.png)
+![](../diagrams/01-recovery-flow.png)
 
 The key property of this mechanism is that unauthorized recovery attempts become costly and exposed to loss. An attacker cannot try for free. They must lock capital, wait through a challenge window, and accept the possibility that the legitimate owner will notice the attempt and confiscate the stake. The system is thus secured not by trust in third parties, but by a game-theoretic asymmetry between the requester and the legitimate owner. Recovery is no longer a right one exercises; it is a game one plays, and one is structurally positioned to lose if one is not the owner.
 
 An immediate vulnerability must be addressed: front-running. If the legitimate owner prepares a recovery transaction in the public mempool, an attacker should not be able to observe it and hijack the claim for the same account. The basic mitigation is a prior proof-of-intention commitment. The requester first publishes a commitment of the form `keccak256(targetAccount, requesterAddress, salt)`. Later, when revealing the recovery request, the contract recomputes the commitment using `msg.sender` and the reveal data, and verifies that it was already registered. This binds the recovery attempt to its original requester and prevents simple mempool theft of the claim.
 
-![](diagrams/02-frontrunning.png)
+![](../diagrams/02-frontrunning.png)
 
 ### Module Interface Sketch
 
@@ -69,7 +69,7 @@ Taken alone, the timelock-plus-collateral model already provides a trustless rec
 
 This is where *watch towers* become useful. A watch tower is an entity that can veto an ongoing recovery during the challenge period, but has no positive control over the account. It cannot recover the account, cannot move funds, cannot sign transactions as the owner, and cannot seize ownership. Its only role is to block a suspicious recovery before it finalizes.
 
-![](diagrams/03-watchtowers.png)
+![](../diagrams/03-watchtowers.png)
 
 This distinction matters. In a traditional social recovery system, recovery actors are part of the account's authority structure. Here, watch towers are not recovery authorities. They are defensive actors with strictly negative power. This keeps the trust surface far narrower: they can prevent a bad transition, but they cannot produce a privileged one.
 
@@ -83,7 +83,7 @@ The privacy goal is therefore not merely to hide the identities of individual wa
 
 A practical way to achieve this is to commit only to the defensive set through a Merkle root stored by the account, rather than publishing the authorized defensive actors directly. Each leaf of the Merkle tree corresponds to an authorized defensive actor or credential, and the account stores only the resulting root. Externally, the account exposes a uniform recovery interface while keeping the underlying defensive structure private.
 
-![](diagrams/04-privacy.png)
+![](../diagrams/04-privacy.png)
 
 Under this model, a watch tower does not identify itself on-chain when vetoing a recovery. Instead, it proves in zero knowledge that it belongs to the set authorized by the current recovery policy for that account, and that it is entitled to veto the specific recovery instance in progress. The contract only needs to verify that a valid veto exists; it does not need to learn which actor produced it. The result is that a recovery can be blocked by an authorized hidden actor without revealing any information about the identity of that actor, or about the structure of the policy itself.
 
